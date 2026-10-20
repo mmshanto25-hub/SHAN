@@ -38,7 +38,7 @@ export const OVERVIEW_DATA = {
     { year: "2019", role: "UI/UX Designer", company: "DesignStudio" },
     { year: "2018", role: "B.S. Computer Science", company: "MIT" }
   ] as TimelineEntry[],
-  resumeUrl: "/my_CV%20update.pdf",
-  resumeFileName: "my_CV update.pdf",
+  resumeUrl: "/my_CV%20updated.pdf",
+  resumeFileName: "my_CV updated.pdf",
   email: "mmshanto25@gmail.com"
 };

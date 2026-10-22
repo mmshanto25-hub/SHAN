@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Switch, Route } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { PortfolioProvider } from '@/context/PortfolioContext';
 
 // Global aesthetic components
@@ -29,35 +29,15 @@ import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
 
-// Initial Loading Screen
-const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onComplete, 1500);
-    return () => clearTimeout(timer);
-  }, [onComplete]);
-
+const LoadingScreen = () => {
   return (
-    <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
-      exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
-    >
-      <div className="relative">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-4xl font-bold font-heading tracking-tight"
-        >
-          <span className="text-gradient">Meskatul Masa</span>bhi Shanto
-        </motion.div>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 1, delay: 0.2, ease: "easeInOut" }}
-          className="absolute -bottom-2 left-0 h-[2px] bg-gradient-premium"
-        />
+    <div className="orbit-loader" role="status" aria-label="Loading">
+      <div className="orbit-loader__animation" aria-hidden="true">
+        <span className="orbit-loader__track orbit-loader__track--outer" />
+        <span className="orbit-loader__track orbit-loader__track--inner" />
+        <img className="orbit-loader__favicon" src="/favicon.png" alt="" />
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -89,17 +69,21 @@ const PortfolioHome = () => {
 
 function App() {
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoading(false), 300);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <PortfolioProvider>
-          <AnimatePresence>
-            {loading && <LoadingScreen onComplete={() => setLoading(false)} />}
-          </AnimatePresence>
+          {loading && <LoadingScreen />}
 
           <div className="min-h-screen bg-transparent relative selection:bg-primary/30 selection:text-white">
             {/* Global Background and Cursor */}

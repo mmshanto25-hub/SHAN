@@ -16,7 +16,7 @@ export const Services: React.FC = () => {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            Services
+            {data.settings.servicesHeading}
           </h2>
           <div className="w-20 h-1 bg-gradient-premium rounded-full mx-auto" />
         </motion.div>

@@ -15,6 +15,7 @@ import {
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AssetUploadField } from '@/admin/AssetUploadField';
 
 type ResourceKey =
   | 'stats'
@@ -28,7 +29,7 @@ type ResourceKey =
   | 'socials'
   | 'contact';
 
-type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'tags' | 'select';
+type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'tags' | 'select' | 'image';
 
 interface FieldDefinition {
   name: string;
@@ -112,7 +113,7 @@ const resources: Record<ResourceKey, Omit<ResourceDefinition, 'fields' | 'api'> 
       { name: 'description', label: 'Description', type: 'textarea', required: true },
       { name: 'tags', label: 'Tags (comma separated)', type: 'tags' },
       { name: 'color', label: 'Gradient classes' },
-      { name: 'imageUrl', label: 'Image URL' },
+      { name: 'imageUrl', label: 'Project image', type: 'image' },
       { name: 'codeUrl', label: 'Source code URL' },
       { name: 'liveUrl', label: 'Live site URL' },
       { name: 'isVisible', label: 'Visible on portfolio', type: 'boolean' },
@@ -348,6 +349,13 @@ export function AdminResourceEditor({ resource, items, categories = [], onChange
                         />
                         {field.label}
                       </span>
+                    ) : field.type === 'image' ? (
+                      <AssetUploadField
+                        label={field.label}
+                        value={String(values[field.name] ?? '')}
+                        disabled={busy}
+                        onChange={(url) => setValues((current) => ({ ...current, [field.name]: url }))}
+                      />
                     ) : (
                       <>
                         <span className="mb-2 block text-sm font-medium text-muted-foreground">{field.label}</span>

@@ -15,7 +15,7 @@ export const Experience: React.FC = () => {
           className="text-center mb-20"
         >
           <h2 className="text-4xl md:text-5xl font-bold font-heading text-white mb-4">
-            Work Experience
+            {data.settings.experienceHeading}
           </h2>
           <div className="w-20 h-1 bg-gradient-premium rounded-full mx-auto" />
         </motion.div>

@@ -78,13 +78,15 @@ export const Hero: React.FC = () => {
             >
               {data.settings.hireMeLabel}
             </a>
-            <a
-              href={data.settings.resumeFileUrl}
-              download={data.settings.resumeFileName}
-              className="px-8 py-3.5 rounded-full border border-white/20 hover:border-primary/50 hover:bg-primary/5 text-white font-semibold transition-all"
-            >
-              {data.settings.downloadCvLabel}
-            </a>
+            {data.sectionVisibility.resume !== false && (
+              <a
+                href={data.settings.resumeFileUrl}
+                download={data.settings.resumeFileName}
+                className="px-8 py-3.5 rounded-full border border-white/20 hover:border-primary/50 hover:bg-primary/5 text-white font-semibold transition-all"
+              >
+                {data.settings.downloadCvLabel}
+              </a>
+            )}
           </div>
 
           <div className="flex items-center gap-4 pt-4 flex-wrap">

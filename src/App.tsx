@@ -21,6 +21,7 @@ import { Experience } from '@/categories/work/Experience';
 import { Testimonials } from '@/categories/connect/Testimonials';
 import { Contact } from '@/categories/connect/Contact';
 import { Footer } from '@/components/sections/Footer';
+import { usePortfolio } from '@/context/PortfolioContext';
 
 // Standalone Pages
 import AdminPage from '@/pages/AdminPage';
@@ -42,27 +43,25 @@ const LoadingScreen = () => {
 };
 
 const PortfolioHome = () => {
+  const { data } = usePortfolio();
+
   return (
     <>
-      <Header />
+      {data.sectionVisibility.header !== false && <Header />}
       <main>
-        {/* Category 1: Overview */}
-        <Hero />
-        <About />
+        {data.sectionVisibility.hero !== false && <Hero />}
+        {data.sectionVisibility.about !== false && <About />}
 
-        {/* Category 2: Expertise */}
-        <Skills />
-        <Services />
+        {data.sectionVisibility.skills !== false && <Skills />}
+        {data.sectionVisibility.services !== false && <Services />}
 
-        {/* Category 3: Work */}
-        <Projects />
-        <Experience />
+        {data.sectionVisibility.projects !== false && <Projects />}
+        {data.sectionVisibility.experience !== false && <Experience />}
 
-        {/* Category 4: Connect */}
-        <Testimonials />
-        <Contact />
+        {data.sectionVisibility.testimonials !== false && <Testimonials />}
+        {data.sectionVisibility.contact !== false && <Contact />}
       </main>
-      <Footer />
+      {data.sectionVisibility.footer !== false && <Footer />}
     </>
   );
 };

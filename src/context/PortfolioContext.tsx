@@ -1,5 +1,6 @@
-import React, { createContext, useContext } from 'react';
-import type { PortfolioData } from '@/lib/api';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { fetchPublicPortfolio, type PortfolioData } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { OVERVIEW_DATA } from '@/categories/overview/overviewData';
 import { SKILL_CATEGORIES, SERVICES } from '@/categories/expertise/expertiseData';
 import { PROJECTS, EXPERIENCE } from '@/categories/work/workData';
@@ -34,6 +35,11 @@ export const FALLBACK_DATA: PortfolioData = {
     contactHeadingSubtitle: CONNECT_HEADING.subtitle,
     contactSocialsHeading: CONNECT_HEADING.socialsHeading,
     contactAvailabilityText: CONNECT_HEADING.availabilityText,
+    skillsHeading: 'Technical Expertise',
+    servicesHeading: 'Services',
+    projectsHeading: 'Featured Work',
+    experienceHeading: 'Work Experience',
+    testimonialsHeading: 'What Clients Say',
     updatedAt: new Date().toISOString(),
   },
   stats: OVERVIEW_DATA.stats.map((s, idx) => ({
@@ -133,20 +139,76 @@ export const FALLBACK_DATA: PortfolioData = {
     mimeType: 'application/pdf',
     downloadLabel: 'Download CV',
     uploadedAt: new Date().toISOString()
-  }
+  },
+  sectionVisibility: {
+    hero: true,
+    resume: true,
+    about: true,
+    skills: true,
+    services: true,
+    projects: true,
+    experience: true,
+    testimonials: true,
+    contact: true,
+    footer: true,
+  },
 };
 
 interface PortfolioContextType {
   data: PortfolioData;
+  loading: boolean;
+  refresh: () => Promise<void>;
 }
 
 const PortfolioContext = createContext<PortfolioContextType>({
   data: FALLBACK_DATA,
+  loading: false,
+  refresh: async () => undefined,
 });
 
 export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [data, setData] = useState(FALLBACK_DATA);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const remote = await fetchPublicPortfolio();
+      if (!remote.settings) return;
+      setData({
+        ...FALLBACK_DATA,
+        ...remote,
+        settings: { ...FALLBACK_DATA.settings, ...remote.settings },
+        sectionVisibility: { ...FALLBACK_DATA.sectionVisibility, ...remote.sectionVisibility },
+      });
+    } catch (error) {
+      console.error('Could not load portfolio data from Supabase.', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const listener = () => void refresh();
+    window.addEventListener('portfolio-content-changed', listener);
+
+    const channel = supabase?.channel('portfolio-live-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'portfolio_items' }, listener)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'portfolio_settings' }, listener)
+      .subscribe();
+
+    return () => {
+      window.removeEventListener('portfolio-content-changed', listener);
+      if (channel) void supabase?.removeChannel(channel);
+    };
+  }, [refresh]);
+
   return (
-    <PortfolioContext.Provider value={{ data: FALLBACK_DATA }}>
+    <PortfolioContext.Provider value={{ data, loading, refresh }}>
       {children}
     </PortfolioContext.Provider>
   );

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { loginAdmin, bootstrapAdmin } from '@/lib/api';
-import { AdminUser } from './types';
+import { Shield, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { loginAdmin } from '@/lib/api';
+import type { AdminUser } from './types';
 
 interface AdminAuthProps {
   needsBootstrap: boolean;
@@ -10,11 +10,9 @@ interface AdminAuthProps {
   onAuthenticated: (admin: AdminUser) => void;
 }
 
-export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialError, onAuthenticated }) => {
-  const [isBootstrap] = useState(needsBootstrap);
-  const [username, setUsername] = useState('');
+export const AdminAuth: React.FC<AdminAuthProps> = ({ initialError, onAuthenticated }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(initialError ?? null);
@@ -23,8 +21,8 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!username.trim()) {
-      setErrorMsg('Please enter a username');
+    if (!email.trim()) {
+      setErrorMsg('Please enter your admin email');
       return;
     }
     if (!password) {
@@ -32,28 +30,13 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
       return;
     }
 
-    if (isBootstrap && password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      return;
-    }
-
-    if (isBootstrap && password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      if (isBootstrap) {
-        const res = await bootstrapAdmin(username.trim(), password);
-        onAuthenticated(res.admin);
-      } else {
-        const res = await loginAdmin(username.trim(), password);
-        onAuthenticated(res.admin);
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed');
+      const res = await loginAdmin(email.trim(), password);
+      onAuthenticated(res.admin);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -79,12 +62,10 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
               </div>
             </div>
             <h1 className="text-2xl font-bold font-heading text-white">
-              {isBootstrap ? 'Admin Initialization' : 'Portfolio Admin'}
+              Portfolio Admin
             </h1>
             <p className="text-sm text-muted-foreground mt-1.5">
-              {isBootstrap
-                ? 'Create the master administrator account to get started.'
-                : 'Sign in to manage your portfolio content.'}
+              Sign in with the administrator account created in Supabase.
             </p>
           </div>
 
@@ -102,15 +83,15 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                Username
+                Admin email
               </label>
               <div className="relative">
                 <User className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   required
                   autoFocus
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground/50 text-sm focus:outline-none focus:border-primary/60 transition-colors"
@@ -143,25 +124,6 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
               </div>
             </div>
 
-            {isBootstrap && (
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground/50 text-sm focus:outline-none focus:border-primary/60 transition-colors"
-                  />
-                </div>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={isLoading}
@@ -171,7 +133,7 @@ export const AdminAuth: React.FC<AdminAuthProps> = ({ needsBootstrap, initialErr
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {isBootstrap ? 'Initialize Master Admin' : 'Sign In'}
+                  Sign In
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

@@ -7,6 +7,17 @@ export const ResumePage: React.FC = () => {
   const resumeUrl = data.settings.resumeFileUrl;
   const resumeFileName = data.settings.resumeFileName || 'Resume.pdf';
 
+  if (data.sectionVisibility.resume === false || !resumeUrl) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-zinc-950 p-6 text-zinc-100">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Resume is currently unavailable.</p>
+          <a href="/" className="mt-4 inline-block text-sm text-blue-400 underline">Back to portfolio</a>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="fixed inset-0 z-50 overflow-hidden bg-zinc-950 text-zinc-100">
       <iframe

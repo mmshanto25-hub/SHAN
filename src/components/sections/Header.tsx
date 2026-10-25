@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
 import { 
@@ -16,7 +16,7 @@ import {
   Instagram,
   Shield
 } from 'lucide-react';
-import { NAV_CATEGORIES, ALL_NAV_SECTIONS, NavCategory } from '@/categories/navigationData';
+import { NAV_CATEGORIES, type NavCategory } from '@/categories/navigationData';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { getWhatsAppUrl } from '@/lib/format';
 import { renderDynamicIcon } from '@/lib/icons';
@@ -32,9 +32,19 @@ export const Header: React.FC = () => {
   const desktopNavRef = useRef<HTMLElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const scrollProgress = useScrollProgress();
+  const visibleNavCategories = useMemo(() => NAV_CATEGORIES
+    .map((category) => ({
+      ...category,
+      subItems: category.subItems.filter((item) => {
+        const section = item.href === '#home' ? 'hero' : item.href.slice(1);
+        return data.sectionVisibility[section] !== false;
+      }),
+    }))
+    .filter((category) => category.subItems.length > 0), [data.sectionVisibility]);
+  const visibleNavSections = useMemo(() => visibleNavCategories.flatMap((category) => category.subItems), [visibleNavCategories]);
 
   // Determine which top-level category is currently active based on section in view
-  const activeCategoryId = NAV_CATEGORIES.find(cat => 
+  const activeCategoryId = visibleNavCategories.find(cat => 
     cat.subItems.some(sub => sub.href.substring(1) === activeSection)
   )?.id || 'overview';
 
@@ -43,7 +53,7 @@ export const Header: React.FC = () => {
       setIsScrolled(window.scrollY > 50);
 
       // Scroll spy logic across all sections
-      const sections = ALL_NAV_SECTIONS.map(item => document.getElementById(item.href.substring(1)));
+      const sections = visibleNavSections.map(item => document.getElementById(item.href.substring(1)));
       let currentActive = 'home';
 
       sections.forEach(section => {
@@ -61,7 +71,7 @@ export const Header: React.FC = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [visibleNavSections]);
 
   // Close menus on outside click or escape key
   useEffect(() => {
@@ -148,7 +158,7 @@ export const Header: React.FC = () => {
           aria-label="Main Navigation"
           className="hidden md:flex items-center gap-2"
         >
-          {NAV_CATEGORIES.map((category: NavCategory) => {
+          {visibleNavCategories.map((category: NavCategory) => {
             const isCategoryActive = activeCategoryId === category.id;
             const isDropdownOpen = openDropdownId === category.id;
 
@@ -302,11 +312,11 @@ export const Header: React.FC = () => {
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         All Navigation Sections
                       </span>
-                      <span className="text-[10px] text-primary/80 font-mono">8 sections</span>
+                      <span className="text-[10px] text-primary/80 font-mono">{visibleNavSections.length} sections</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1.5">
-                      {ALL_NAV_SECTIONS.map((section) => {
+                      {visibleNavSections.map((section) => {
                         const isSectionActive = activeSection === section.href.substring(1);
                         const SectionIcon = section.icon;
 
@@ -346,20 +356,24 @@ export const Header: React.FC = () => {
                       >
                         <Send className="w-3.5 h-3.5" /> {data.settings.hireMeLabel}
                       </a>
-                      <a
-                        href="/resume"
-                        onClick={() => setMoreMenuOpen(false)}
-                        className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
-                      >
-                        <FileText className="w-3.5 h-3.5" /> Resume
-                      </a>
-                      <a
-                        href={data.settings.resumeFileUrl}
-                        download={data.settings.resumeFileName}
-                        className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/20 hover:border-primary/50 hover:bg-white/10 text-white text-xs font-semibold transition-all"
-                      >
-                        <FileDown className="w-3.5 h-3.5" /> PDF
-                      </a>
+                      {data.sectionVisibility.resume !== false && (
+                        <>
+                          <a
+                            href="/resume"
+                            onClick={() => setMoreMenuOpen(false)}
+                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
+                          >
+                            <FileText className="w-3.5 h-3.5" /> Resume
+                          </a>
+                          <a
+                            href={data.settings.resumeFileUrl}
+                            download={data.settings.resumeFileName}
+                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/20 hover:border-primary/50 hover:bg-white/10 text-white text-xs font-semibold transition-all"
+                          >
+                            <FileDown className="w-3.5 h-3.5" /> PDF
+                          </a>
+                        </>
+                      )}
                       <a
                         href="/admin"
                         onClick={() => setMoreMenuOpen(false)}
@@ -424,7 +438,7 @@ export const Header: React.FC = () => {
           >
             {/* Grouped 4 Categories with sublinks */}
             <div className="space-y-4">
-              {NAV_CATEGORIES.map((category) => {
+              {visibleNavCategories.map((category) => {
                 const isCatActive = activeCategoryId === category.id;
 
                 return (
@@ -479,20 +493,24 @@ export const Header: React.FC = () => {
                 >
                   {data.settings.hireMeLabel}
                 </a>
-                <a
-                  href="/resume"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
-                >
-                  Resume
-                </a>
-                <a
-                  href={data.settings.resumeFileUrl}
-                  download={data.settings.resumeFileName}
-                  className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
-                >
-                  PDF CV
-                </a>
+                {data.sectionVisibility.resume !== false && (
+                  <>
+                    <a
+                      href="/resume"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
+                    >
+                      Resume
+                    </a>
+                    <a
+                      href={data.settings.resumeFileUrl}
+                      download={data.settings.resumeFileName}
+                      className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
+                    >
+                      PDF CV
+                    </a>
+                  </>
+                )}
                 <a
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}

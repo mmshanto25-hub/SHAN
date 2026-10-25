@@ -75,7 +75,16 @@ export const Footer: React.FC = () => {
           <div>
             <h4 className="text-white font-bold mb-6 font-heading">Navigation</h4>
             <ul className="space-y-3">
-              {NAV_CATEGORIES.map(category => (
+              {NAV_CATEGORIES
+                .map((category) => ({
+                  ...category,
+                  subItems: category.subItems.filter((item) => {
+                    const section = item.href === '#home' ? 'hero' : item.href.slice(1);
+                    return data.sectionVisibility[section] !== false;
+                  }),
+                }))
+                .filter((category) => category.subItems.length > 0)
+                .map(category => (
                 <li key={category.id}>
                   <a 
                     href={category.href} 

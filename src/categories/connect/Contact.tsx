@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, MessageSquare, Send, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { getWhatsAppUrl } from '@/lib/format';
 import { renderDynamicIcon } from '@/lib/icons';
+import { submitInboxMessage } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 const DEFAULT_ICON_MAP: Record<string, any> = {
   email: Mail,
@@ -22,16 +24,6 @@ export const Contact: React.FC = () => {
     if (type === 'phone') return `tel:${item.value}`;
     if (type === 'whatsapp') return getWhatsAppUrl(item.value);
     return undefined;
-  };
-
-  const openFloatingChat = () => {
-    // Find the floating chat button and click it
-    const chatBtn = document.querySelector('button[aria-label="Open message chat"]') as HTMLButtonElement;
-    if (chatBtn) {
-      chatBtn.click();
-    } else {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }
   };
 
   return (
@@ -137,31 +129,12 @@ export const Contact: React.FC = () => {
                   Start a Conversation
                 </h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-                  Send a message directly through the site via the floating chat widget, or connect instantly over WhatsApp and email.
+                  Send a message through the form below, or connect instantly over WhatsApp and email.
                 </p>
               </div>
 
-              {/* Chat action card */}
               <div className="space-y-4">
-                <button
-                  onClick={openFloatingChat}
-                  className="w-full p-6 rounded-2xl bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border border-primary/40 hover:border-primary text-left group transition-all flex items-center justify-between cursor-pointer"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-premium flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform">
-                      <MessageSquare className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-white font-bold text-base group-hover:text-primary transition-colors">
-                        Open Live Chat
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Chat directly on this site · Saved to inbox
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-white group-hover:translate-x-1 transition-all" />
-                </button>
+                <InquiryForm />
 
                 {/* WhatsApp Chat Card */}
                 <a
@@ -206,6 +179,76 @@ export const Contact: React.FC = () => {
     </section>
   );
 };
+
+function InquiryForm() {
+  const [senderName, setSenderName] = useState('');
+  const [senderEmail, setSenderEmail] = useState('');
+  const [content, setContent] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    setSent(false);
+    try {
+      await submitInboxMessage({ senderName, senderEmail, content });
+      setSenderName('');
+      setSenderEmail('');
+      setContent('');
+      setSent(true);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Could not send your message. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-premium text-white">
+          <MessageSquare className="h-5 w-5" />
+        </div>
+        <div>
+          <h4 className="font-bold text-white">Send a message</h4>
+          <p className="text-xs text-muted-foreground">Your note will be delivered to the admin inbox.</p>
+        </div>
+      </div>
+      <input
+        value={senderName}
+        onChange={(event) => setSenderName(event.target.value)}
+        placeholder="Your name"
+        maxLength={120}
+        className="w-full rounded-lg border border-white/10 bg-background/80 px-3 py-2.5 text-sm text-white outline-none focus:border-primary"
+      />
+      <input
+        type="email"
+        value={senderEmail}
+        onChange={(event) => setSenderEmail(event.target.value)}
+        placeholder="Your email (optional)"
+        maxLength={320}
+        className="w-full rounded-lg border border-white/10 bg-background/80 px-3 py-2.5 text-sm text-white outline-none focus:border-primary"
+      />
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        placeholder="How can I help?"
+        required
+        maxLength={5000}
+        rows={4}
+        className="w-full resize-y rounded-lg border border-white/10 bg-background/80 px-3 py-2.5 text-sm text-white outline-none focus:border-primary"
+      />
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+      {sent && <p role="status" className="text-sm text-green-400">Message sent. Thank you for reaching out!</p>}
+      <Button type="submit" disabled={busy || !content.trim()} className="w-full">
+        {busy ? 'Sending…' : 'Send message'} <Send className="h-4 w-4" />
+      </Button>
+    </form>
+  );
+}
 
 const ContactCard = ({ 
   iconName,

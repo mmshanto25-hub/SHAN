@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Switch, Route } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
@@ -21,13 +21,14 @@ import { Experience } from '@/categories/work/Experience';
 import { Testimonials } from '@/categories/connect/Testimonials';
 import { Contact } from '@/categories/connect/Contact';
 import { Footer } from '@/components/sections/Footer';
+import { VisitorChatWidget } from '@/components/VisitorChatWidget';
 import { usePortfolio } from '@/context/PortfolioContext';
 
 // Standalone Pages
-import AdminPage from '@/pages/AdminPage';
 import { ResumePage } from '@/pages/ResumePage';
 import NotFound from '@/pages/not-found';
 
+const AdminPage = lazy(() => import('@/pages/AdminPage'));
 const queryClient = new QueryClient();
 
 const LoadingScreen = () => {
@@ -41,6 +42,12 @@ const LoadingScreen = () => {
     </div>
   );
 };
+
+const LazyAdminPage = () => (
+  <Suspense fallback={<LoadingScreen />}>
+    <AdminPage />
+  </Suspense>
+);
 
 const PortfolioHome = () => {
   const { data } = usePortfolio();
@@ -62,6 +69,7 @@ const PortfolioHome = () => {
         {data.sectionVisibility.contact !== false && <Contact />}
       </main>
       {data.sectionVisibility.footer !== false && <Footer />}
+      <VisitorChatWidget />
     </>
   );
 };
@@ -98,7 +106,7 @@ function App() {
                 <Switch>
                   <Route path="/" component={PortfolioHome} />
                   <Route path="/resume" component={ResumePage} />
-                  <Route path="/admin" component={AdminPage} />
+                  <Route path="/admin" component={LazyAdminPage} />
                   <Route component={NotFound} />
                 </Switch>
               </motion.div>

@@ -2,9 +2,9 @@
 
 ## 1. Apply the database migration
 
-In the Supabase dashboard, open **SQL Editor**, create a query, paste the contents of [`migrations/20261024000100_portfolio_cms.sql`](./migrations/20261024000100_portfolio_cms.sql), and run it.
+In the Supabase dashboard, open **SQL Editor**, create a query, paste the contents of [`migrations/20261024000100_portfolio_cms.sql`](./migrations/20261024000100_portfolio_cms.sql), and run it. Then run the chat migration [`migrations/20261031000100_visitor_admin_chat.sql`](./migrations/20261031000100_visitor_admin_chat.sql) to create the private visitor/admin chat tables and RPCs. Apply both migrations in timestamp order.
 
-This creates the portfolio tables, row-level security policies, the public asset bucket, and an admin allowlist. Public visitors can read visible portfolio content and submit contact messages. Only allowlisted admin users can change content or read the inbox.
+The first migration creates the portfolio tables, row-level security policies, the public asset bucket, and an admin allowlist. The chat migration adds visitor conversations with token-protected access; only allowlisted admins can list conversations and reply. Public visitors can read only their own thread and submit contact messages.
 
 ## 2. Create the admin account
 
@@ -28,6 +28,12 @@ If the login form reports **Invalid login credentials**, Supabase Auth did not f
 
 If sign-in succeeds but the account is not authorized, run the allowlist SQL above for the same account. After changing `.env`, restart the Vite dev server.
 
+If the browser console reports `PGRST205` and says it cannot find `public.portfolio_settings`, the portfolio migration has not been applied to this Supabase project (or its schema cache has not refreshed). Run the complete SQL file from step 1 in the SQL Editor; adding an admin to the allowlist alone does not create the portfolio tables. If the tables already exist, refresh the schema cache in the SQL Editor with:
+
+```sql
+notify pgrst, 'reload schema';
+```
+
 ## 3. Configure local development
 
 Copy `.env.example` to `.env` and fill these values from **Project Settings → API**:
@@ -45,6 +51,6 @@ In the Vercel project settings, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_
 
 ## 5. Import and manage content
 
-Open `/admin`, sign in with the allowlisted account, and choose **Import existing portfolio content** once. This copies the current portfolio into Supabase. After that, edits, uploads, visibility changes, and inbox management save to Supabase and do not require a frontend redeploy.
+Open `/admin`, sign in with the allowlisted account, and choose **Import existing portfolio content** once. This copies the current portfolio into Supabase. After that, edits, uploads, visibility changes, inbox management, and visitor chat replies save to Supabase and do not require a frontend redeploy. Visitors can start a chat from the floating message button on the public portfolio; replies appear in **Admin → Visitor chat**.
 
-Changing application code still requires a Vercel deployment. Database content changes are available to public visitors on refresh; live updates are enabled for portfolio tables when the Supabase project supports the `supabase_realtime` publication.
+Changing application code still requires a Vercel deployment. Database content changes are available to public visitors on refresh; live updates are enabled for portfolio and chat tables when the Supabase project supports the `supabase_realtime` publication. Chat screens poll as a fallback.

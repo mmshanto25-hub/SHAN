@@ -52,6 +52,24 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, 'dist'),
     emptyOutDir: true,
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/framer-motion/')) {
+            return 'vendor-motion';
+          }
+          if (id.includes('node_modules/@supabase/')) {
+            return 'vendor-supabase';
+          }
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'vendor-radix';
+          }
+        },
+      },
+    },
   },
   server: {
     port,

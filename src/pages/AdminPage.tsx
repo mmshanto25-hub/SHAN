@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AdminAuth } from '@/admin/AdminAuth';
+import { AdminChatInbox } from '@/admin/AdminChatInbox';
 import { AdminResourceEditor } from '@/admin/AdminResourceEditor';
 import { AssetUploadField } from '@/admin/AssetUploadField';
 import type { AdminTab, AdminUser } from '@/admin/types';
@@ -53,6 +54,7 @@ const ADMIN_TABS: Array<{ key: AdminTab; label: string; icon: LucideIcon }> = [
   { key: 'contact', label: 'Contact', icon: Contact },
   { key: 'resume', label: 'Resume', icon: FileText },
   { key: 'inbox', label: 'Inbox', icon: MessageSquare },
+  { key: 'chat', label: 'Visitor chat', icon: MessageSquare },
   { key: 'footer', label: 'Footer', icon: ArrowRight },
 ];
 
@@ -349,6 +351,8 @@ export default function AdminPage() {
             onError={(message) => setError(message)}
           />
         );
+      case 'chat':
+        return <AdminChatInbox />;
       case 'footer':
         return renderSettings([
           { name: 'firstName', label: 'First name' },

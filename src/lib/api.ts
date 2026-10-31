@@ -56,12 +56,10 @@ export interface PortfolioData {
   resume: { id: string; fileName: string; originalName: string; fileUrl: string; fileSize: number; mimeType: string; downloadLabel: string; uploadedAt: string };
 }
 
-export interface Conversation {
+export interface ChatConversation {
   id: string;
-  visitorToken: string;
   visitorName?: string | null;
   visitorEmail?: string | null;
-  lastMessageText?: string | null;
   lastMessageAt: string;
   unreadByAdmin: boolean;
   unreadByVisitor: boolean;
@@ -84,6 +82,25 @@ export interface InboxMessage {
   content: string;
   isRead: boolean;
   createdAt: string;
+}
+
+interface ChatMessageRow {
+  id: string;
+  conversation_id: string;
+  sender: 'visitor' | 'admin';
+  content: string;
+  created_at: string;
+}
+
+interface ChatConversationRow {
+  id: string;
+  visitor_name: string;
+  visitor_email: string;
+  unread_by_admin: boolean;
+  unread_by_visitor: boolean;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 type ItemSection =
@@ -456,16 +473,80 @@ export async function deleteInboxMessage(id: string) {
 }
 
 export async function sendVisitorMessage(payload: { visitorToken: string; content: string; name?: string; email?: string }) {
-  await submitInboxMessage({
-    senderName: payload.name ?? '',
-    senderEmail: payload.email ?? '',
-    content: payload.content,
+  const { data, error } = await requireSupabase().rpc('send_visitor_chat_message', {
+    p_visitor_token: payload.visitorToken,
+    p_content: payload.content,
+    p_name: payload.name ?? '',
+    p_email: payload.email ?? '',
   });
-  return { message: { id: crypto.randomUUID(), conversationId: payload.visitorToken, sender: 'visitor' as const, content: payload.content, createdAt: new Date().toISOString() } };
+  if (error) throw error;
+  const result = data as { message: Message };
+  return result;
 }
 
-export async function fetchVisitorThread(_visitorToken: string): Promise<{ conversation: Conversation | null; messages: Message[] }> {
-  return { conversation: null, messages: [] };
+export async function fetchVisitorThread(visitorToken: string, markRead = false): Promise<{ conversation: ChatConversation | null; messages: Message[] }> {
+  const { data, error } = await requireSupabase().rpc('get_visitor_chat', {
+    p_visitor_token: visitorToken,
+    p_mark_read: markRead,
+  });
+  if (error) throw error;
+  return data as { conversation: ChatConversation | null; messages: Message[] };
 }
 
-export async function markVisitorThreadRead(_visitorToken: string) {}
+export async function fetchChatConversations(): Promise<ChatConversation[]> {
+  const { data, error } = await requireSupabase().from('chat_conversations')
+    .select('id, visitor_name, visitor_email, unread_by_admin, unread_by_visitor, is_archived, created_at, updated_at')
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as ChatConversationRow[]).map((row) => ({
+    id: row.id,
+    visitorName: row.visitor_name,
+    visitorEmail: row.visitor_email,
+    unreadByAdmin: row.unread_by_admin,
+    unreadByVisitor: row.unread_by_visitor,
+    isArchived: row.is_archived,
+    createdAt: row.created_at,
+    lastMessageAt: row.updated_at,
+  }));
+}
+
+export async function fetchAdminChatMessages(conversationId: string): Promise<Message[]> {
+  const { data, error } = await requireSupabase().from('chat_messages')
+    .select('id, conversation_id, sender, content, created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as ChatMessageRow[]).map((row) => ({
+    id: row.id,
+    conversationId: row.conversation_id,
+    sender: row.sender,
+    content: row.content,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function markChatConversationRead(conversationId: string) {
+  const { error } = await requireSupabase().from('chat_conversations')
+    .update({ unread_by_admin: false })
+    .eq('id', conversationId);
+  if (error) throw error;
+}
+
+export async function sendAdminChatMessage(conversationId: string, content: string) {
+  const message = content.trim();
+  if (!message || message.length > 2000) throw new Error('Message must contain between 1 and 2000 characters.');
+  const { error } = await requireSupabase().from('chat_messages').insert({
+    conversation_id: conversationId,
+    sender: 'admin',
+    content: message,
+  });
+  if (error) throw error;
+}
+
+export async function markVisitorThreadRead(visitorToken: string) {
+  const { error } = await requireSupabase().rpc('get_visitor_chat', {
+    p_visitor_token: visitorToken,
+    p_mark_read: true,
+  });
+  if (error) throw error;
+}

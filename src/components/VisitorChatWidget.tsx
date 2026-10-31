@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, User, Check, AlertCircle } from 'lucide-react';
-import { sendVisitorMessage, fetchVisitorThread, markVisitorThreadRead, Message } from '@/lib/api';
+import { MessageSquare, X, Send, AlertCircle } from 'lucide-react';
+import { sendVisitorMessage, fetchVisitorThread, type Message } from '@/lib/api';
 
 function getOrCreateVisitorToken(): string {
   const STORAGE_KEY = 'portfolio_visitor_chat_token';
   let token = localStorage.getItem(STORAGE_KEY);
-  if (!token) {
-    token = 'vis_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+  if (!token || !/^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$/i.test(token)) {
+    token = crypto.randomUUID();
     localStorage.setItem(STORAGE_KEY, token);
   }
   return token;
@@ -32,34 +32,29 @@ export const VisitorChatWidget: React.FC = () => {
   };
 
   // Poll for messages
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
-      const data = await fetchVisitorThread(visitorToken);
-      if (data.messages) {
-        setMessages(data.messages);
-        if (data.conversation?.unreadByVisitor && !isOpen) {
-          setUnreadCount(1);
-        }
-      }
-    } catch {
-      // silent fail on background poll
+      const data = await fetchVisitorThread(visitorToken, isOpen);
+      setMessages(data.messages);
+      setUnreadCount(data.conversation?.unreadByVisitor && !isOpen ? 1 : 0);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Could not load your messages.');
     }
-  };
+  }, [visitorToken, isOpen]);
 
   useEffect(() => {
-    loadMessages();
-    const interval = setInterval(loadMessages, isOpen ? 3000 : 15000);
+    void loadMessages();
+    const interval = window.setInterval(() => void loadMessages(), isOpen ? 3000 : 15000);
     return () => clearInterval(interval);
-  }, [visitorToken, isOpen]);
+  }, [loadMessages, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
       setUnreadCount(0);
-      markVisitorThreadRead(visitorToken).catch(() => {});
       setTimeout(scrollToBottom, 100);
       inputRef.current?.focus();
     }
-  }, [isOpen, visitorToken]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -90,8 +85,8 @@ export const VisitorChatWidget: React.FC = () => {
         setMessages((prev) => [...prev, res.message]);
         setInputText('');
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to send message. Please try again.');
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -303,4 +298,3 @@ export const VisitorChatWidget: React.FC = () => {
     </>
   );
 };
-

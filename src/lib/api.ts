@@ -162,7 +162,9 @@ async function readPortfolio(includeHidden: boolean): Promise<Partial<PortfolioD
   if (itemsResult.error) throw itemsResult.error;
 
   const rows = (itemsResult.data ?? []) as PortfolioItemRow[];
-  const bySection = (section: ItemSection) => rows.filter((row) => row.section === section).map(mapItem);
+  const bySection = (section: ItemSection) => rows
+    .filter((row) => row.section === section && (includeHidden || row.is_visible))
+    .map(mapItem);
   const allSkillCategories = bySection('skillCategories') as NonNullable<PortfolioData['allSkillCategories']>;
   const skills = bySection('skills') as PortfolioData['skills'];
 
@@ -400,9 +402,7 @@ export async function initializePortfolio(data: PortfolioData) {
   const { error: settingsError } = await client.from('portfolio_settings').upsert({
     id: 'main',
     data: data.settings,
-    section_visibility: Object.fromEntries([
-      'hero', 'about', 'skills', 'services', 'projects', 'experience', 'testimonials', 'contact', 'footer',
-    ].map((section) => [section, true])),
+    section_visibility: data.sectionVisibility,
     updated_at: new Date().toISOString(),
   });
   if (settingsError) throw settingsError;

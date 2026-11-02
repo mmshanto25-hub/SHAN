@@ -159,6 +159,8 @@ export const FALLBACK_DATA: PortfolioData = {
     experience: true,
     testimonials: true,
     contact: true,
+    socials: true,
+    chat: true,
     footer: true,
   },
 };

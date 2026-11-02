@@ -71,6 +71,8 @@ const MANAGED_SECTIONS = [
   ['experience', 'Experience'],
   ['testimonials', 'Testimonials'],
   ['contact', 'Contact'],
+  ['socials', 'Social links'],
+  ['chat', 'Visitor chat'],
   ['resume', 'Resume'],
   ['footer', 'Footer'],
 ] as const;

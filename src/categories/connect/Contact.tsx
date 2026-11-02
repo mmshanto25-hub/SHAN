@@ -67,26 +67,28 @@ export const Contact: React.FC = () => {
               })}
             </div>
 
-            <div>
-              <h3 className="text-xl font-bold text-white mb-4 font-heading">
-                {data.settings.contactSocialsHeading || "Connect with me"}
-              </h3>
-              <div className="flex gap-3 flex-wrap">
-                {data.socialLinks.map((link) => (
-                  <a 
-                    key={link.id} 
-                    href={link.url} 
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-12 h-12 rounded-xl glassmorphism flex items-center justify-center text-muted-foreground hover:text-white hover:border-primary/50 hover:bg-primary/10 transition-all transform hover:-translate-y-1"
-                    aria-label={link.label}
-                    title={link.label}
-                  >
-                    {renderDynamicIcon(link.icon, { className: 'w-5 h-5' })}
-                  </a>
-                ))}
+            {data.sectionVisibility.socials !== false && data.socialLinks.length > 0 && (
+              <div>
+                <h3 className="text-xl font-bold text-white mb-4 font-heading">
+                  {data.settings.contactSocialsHeading || "Connect with me"}
+                </h3>
+                <div className="flex gap-3 flex-wrap">
+                  {data.socialLinks.filter((link) => link.isVisible).map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-12 h-12 rounded-xl glassmorphism flex items-center justify-center text-muted-foreground hover:text-white hover:border-primary/50 hover:bg-primary/10 transition-all transform hover:-translate-y-1"
+                      aria-label={link.label}
+                      title={link.label}
+                    >
+                      {renderDynamicIcon(link.icon, { className: 'w-5 h-5' })}
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Map Visual Graphic */}
             <div className="w-full h-44 rounded-3xl glassmorphism overflow-hidden relative group border-white/10">

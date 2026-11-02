@@ -59,7 +59,9 @@ export const Header: React.FC = () => {
       data.sectionVisibility.headerResumeAction !== false
       || data.sectionVisibility.headerPdfAction !== false
     ));
-  const visibleSocialLinks = data.socialLinks.filter((link) => link.isVisible);
+  const visibleSocialLinks = data.sectionVisibility.socials !== false
+    ? data.socialLinks.filter((link) => link.isVisible)
+    : [];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -407,9 +409,9 @@ export const Header: React.FC = () => {
                   )}
 
                   {/* Dynamic Social Channels & Back to Top */}
-                  {(data.sectionVisibility.headerSocialLinks !== false || data.sectionVisibility.headerBackToTop !== false) && (
+                  {((data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false) || data.sectionVisibility.headerBackToTop !== false) && (
                     <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                    {data.sectionVisibility.headerSocialLinks !== false ? (
+                    {data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false ? (
                       <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
                       {visibleSocialLinks.map((link) => (
                         <a
@@ -558,7 +560,7 @@ export const Header: React.FC = () => {
                 </>
               )}
 
-              {data.sectionVisibility.headerSocialLinks !== false && (
+              {data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false && (
                 <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
                 {visibleSocialLinks.map((link) => (
                   <a

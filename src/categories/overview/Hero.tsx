@@ -89,21 +89,23 @@ export const Hero: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-4 pt-4 flex-wrap">
-            {data.socialLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={link.label}
-                title={link.label}
-                className="w-12 h-12 rounded-full glassmorphism flex items-center justify-center text-muted-foreground hover:text-white hover:border-primary/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1"
-              >
-                {renderDynamicIcon(link.icon, { className: "w-5 h-5" })}
-              </a>
-            ))}
-          </div>
+          {data.sectionVisibility.socials !== false && data.socialLinks.length > 0 && (
+            <div className="flex items-center gap-4 pt-4 flex-wrap">
+              {data.socialLinks.filter((link) => link.isVisible).map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={link.label}
+                  title={link.label}
+                  className="w-12 h-12 rounded-full glassmorphism flex items-center justify-center text-muted-foreground hover:text-white hover:border-primary/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all transform hover:-translate-y-1"
+                >
+                  {renderDynamicIcon(link.icon, { className: "w-5 h-5" })}
+                </a>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Right Content - Avatar */}

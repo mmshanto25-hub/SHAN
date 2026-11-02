@@ -54,21 +54,23 @@ export const Footer: React.FC = () => {
             <p className="text-muted-foreground text-sm leading-relaxed">
               {data.settings.footerTagline || 'Crafting premium digital experiences through elegant code and meticulous design.'}
             </p>
-            <div className="flex gap-3 flex-wrap">
-              {data.socialLinks.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
-                  aria-label={link.label}
-                  title={link.label}
-                >
-                  {renderDynamicIcon(link.icon, { className: 'w-4 h-4' })}
-                </a>
-              ))}
-            </div>
+            {data.sectionVisibility.socials !== false && data.socialLinks.length > 0 && (
+              <div className="flex gap-3 flex-wrap">
+                {data.socialLinks.filter((link) => link.isVisible).map((link) => (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
+                    aria-label={link.label}
+                    title={link.label}
+                  >
+                    {renderDynamicIcon(link.icon, { className: 'w-4 h-4' })}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Col 2 - Navigation Categories */}
@@ -102,54 +104,58 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* Col 3 - Services Offerings */}
-          <div>
-            <h4 className="text-white font-bold mb-6 font-heading">Services</h4>
-            <ul className="space-y-3">
-              {data.services.slice(0, 6).map(service => (
-                <li key={service.id}>
-                  <a 
-                    href="#services" 
-                    onClick={(e) => { e.preventDefault(); scrollTo('#services'); }}
-                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
-                  >
-                    {service.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {data.sectionVisibility.services !== false && (
+            <div>
+              <h4 className="text-white font-bold mb-6 font-heading">Services</h4>
+              <ul className="space-y-3">
+                {data.services.filter((service) => service.isVisible).slice(0, 6).map(service => (
+                  <li key={service.id}>
+                    <a
+                      href="#services"
+                      onClick={(e) => { e.preventDefault(); scrollTo('#services'); }}
+                      className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                    >
+                      {service.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Col 4 - Contact Info */}
-          <div>
-            <h4 className="text-white font-bold mb-6 font-heading">Contact Info</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              {data.contactInfo.map(info => {
-                const href = getContactHref(info);
-                return (
-                  <li key={info.id}>
-                    {href ? (
-                      <a 
-                        href={href} 
-                        target={href.startsWith('http') ? '_blank' : undefined}
-                        rel={href.startsWith('http') ? 'noreferrer' : undefined}
-                        className="hover:text-primary transition-colors"
-                      >
-                        {info.value}
-                      </a>
-                    ) : (
-                      <span>{info.value}</span>
-                    )}
-                  </li>
-                );
-              })}
-              <li className="pt-2">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 text-xs font-medium">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  {data.settings.contactAvailabilityText || 'Available for remote work'}
-                </span>
-              </li>
-            </ul>
-          </div>
+          {data.sectionVisibility.contact !== false && (
+            <div>
+              <h4 className="text-white font-bold mb-6 font-heading">Contact Info</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                {data.contactInfo.filter((info) => info.isVisible).map(info => {
+                  const href = getContactHref(info);
+                  return (
+                    <li key={info.id}>
+                      {href ? (
+                        <a
+                          href={href}
+                          target={href.startsWith('http') ? '_blank' : undefined}
+                          rel={href.startsWith('http') ? 'noreferrer' : undefined}
+                          className="hover:text-primary transition-colors"
+                        >
+                          {info.value}
+                        </a>
+                      ) : (
+                        <span>{info.value}</span>
+                      )}
+                    </li>
+                  );
+                })}
+                <li className="pt-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    {data.settings.contactAvailabilityText || 'Available for remote work'}
+                  </span>
+                </li>
+              </ul>
+            </div>
+          )}
 
         </div>
 

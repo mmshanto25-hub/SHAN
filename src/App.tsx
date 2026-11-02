@@ -69,7 +69,7 @@ const PortfolioHome = () => {
         {data.sectionVisibility.contact !== false && <Contact />}
       </main>
       {data.sectionVisibility.footer !== false && <Footer />}
-      <VisitorChatWidget />
+      {data.sectionVisibility.chat !== false && <VisitorChatWidget />}
     </>
   );
 };

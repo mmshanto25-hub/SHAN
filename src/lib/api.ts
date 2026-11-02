@@ -75,6 +75,8 @@ export interface Message {
   createdAt: string;
 }
 
+export const CHAT_MESSAGE_MAX_LENGTH = 10000;
+
 export interface InboxMessage {
   id: string;
   senderName: string;
@@ -534,7 +536,9 @@ export async function markChatConversationRead(conversationId: string) {
 
 export async function sendAdminChatMessage(conversationId: string, content: string) {
   const message = content.trim();
-  if (!message || message.length > 2000) throw new Error('Message must contain between 1 and 2000 characters.');
+  if (!message || message.length > CHAT_MESSAGE_MAX_LENGTH) {
+    throw new Error(`Message must contain between 1 and ${CHAT_MESSAGE_MAX_LENGTH} characters.`);
+  }
   const { error } = await requireSupabase().from('chat_messages').insert({
     conversation_id: conversationId,
     sender: 'admin',

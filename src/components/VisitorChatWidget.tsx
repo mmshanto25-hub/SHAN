@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, AlertCircle } from 'lucide-react';
-import { sendVisitorMessage, fetchVisitorThread, type Message } from '@/lib/api';
+import { CHAT_MESSAGE_MAX_LENGTH, sendVisitorMessage, fetchVisitorThread, type Message } from '@/lib/api';
 
 function getOrCreateVisitorToken(): string {
   const STORAGE_KEY = 'portfolio_visitor_chat_token';
@@ -25,7 +25,7 @@ export const VisitorChatWidget: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -268,16 +268,17 @@ export const VisitorChatWidget: React.FC = () => {
             )}
 
             {/* Input Composer */}
-            <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-white/5 flex items-center gap-2">
-              <input
+            <form onSubmit={handleSend} className="p-3 border-t border-white/10 bg-white/5 flex items-end gap-2">
+              <textarea
                 ref={inputRef}
-                type="text"
+                rows={2}
                 placeholder="Type your message..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 disabled={isSending}
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-background/80 border border-white/15 text-xs text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 transition-colors"
-                maxLength={2000}
+                aria-label="Type your message"
+                className="min-h-11 max-h-32 flex-1 resize-none overflow-y-auto px-3.5 py-2.5 rounded-xl bg-background/80 border border-white/15 text-xs text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/60 transition-colors"
+                maxLength={CHAT_MESSAGE_MAX_LENGTH}
               />
               <button
                 type="submit"

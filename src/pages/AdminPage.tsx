@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AdminAuth } from '@/admin/AdminAuth';
+import { AdminChatWidget } from '@/admin/AdminChatWidget';
 import { AdminChatInbox } from '@/admin/AdminChatInbox';
 import { AdminResourceEditor } from '@/admin/AdminResourceEditor';
 import { AssetUploadField } from '@/admin/AssetUploadField';
@@ -420,6 +421,7 @@ export default function AdminPage() {
           <main className="space-y-6">{renderTabContent()}</main>
         </div>
       </div>
+      <AdminChatWidget />
     </div>
   );
 }

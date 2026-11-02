@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Send } from 'lucide-react';
 import {
+  CHAT_MESSAGE_MAX_LENGTH,
   fetchAdminChatMessages,
   fetchChatConversations,
   markChatConversationRead,
@@ -172,13 +173,14 @@ export function AdminChatInbox() {
                   <div ref={messagesEndRef} />
                 </div>
                 <form onSubmit={(event) => void sendReply(event)} className="flex gap-2 border-t border-border p-3">
-                  <input
+                  <textarea
+                    rows={2}
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
-                    maxLength={2000}
+                    maxLength={CHAT_MESSAGE_MAX_LENGTH}
                     aria-label="Reply to visitor"
                     placeholder="Write a reply…"
-                    className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                    className="min-h-10 max-h-32 min-w-0 flex-1 resize-none overflow-y-auto rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                   <Button type="submit" disabled={!draft.trim() || sending} aria-label="Send reply">
                     <Send className="h-4 w-4" /> Reply

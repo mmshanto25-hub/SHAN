@@ -1,5 +1,6 @@
 export type AdminTab =
   | 'overview'
+  | 'header'
   | 'hero'
   | 'about'
   | 'stats'

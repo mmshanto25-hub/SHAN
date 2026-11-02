@@ -6,6 +6,15 @@ export interface PortfolioData {
     name: string;
     firstName: string;
     lastName: string;
+    overviewNavLabel: string;
+    expertiseNavLabel: string;
+    workNavLabel: string;
+    connectNavLabel: string;
+    moreSectionsTitle: string;
+    moreQuickActionsTitle: string;
+    resumeActionLabel: string;
+    pdfActionLabel: string;
+    adminActionLabel: string;
     bioHeadline: string;
     tagline: string;
     statusText: string;

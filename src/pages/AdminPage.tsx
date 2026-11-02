@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  PanelTop,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -43,6 +44,7 @@ import { FALLBACK_DATA, usePortfolio } from '@/context/PortfolioContext';
 
 const ADMIN_TABS: Array<{ key: AdminTab; label: string; icon: LucideIcon }> = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { key: 'header', label: 'Header', icon: PanelTop },
   { key: 'hero', label: 'Hero', icon: Sparkles },
   { key: 'about', label: 'About', icon: UserRound },
   { key: 'stats', label: 'Stats', icon: Settings2 },
@@ -71,6 +73,15 @@ const MANAGED_SECTIONS = [
   ['contact', 'Contact'],
   ['resume', 'Resume'],
   ['footer', 'Footer'],
+] as const;
+
+const HEADER_MENU_ITEMS = [
+  ['headerHireAction', 'Hire me action'],
+  ['headerResumeAction', 'Resume page action'],
+  ['headerPdfAction', 'PDF download action'],
+  ['headerAdminAction', 'Admin action'],
+  ['headerSocialLinks', 'Social links'],
+  ['headerBackToTop', 'Back to top action'],
 ] as const;
 
 export default function AdminPage() {
@@ -177,7 +188,7 @@ export default function AdminPage() {
 
   const renderSettings = (fields: Array<{ name: keyof PortfolioData['settings']; label: string; multiline?: boolean; asset?: boolean }>) => (
     <SettingsEditor
-      title={activeTab === 'hero' ? 'Hero content' : activeTab === 'about' ? 'About content' : activeTab === 'contact' ? 'Contact content' : 'Footer content'}
+      title={activeTab === 'header' ? 'Header and three-dot menu' : activeTab === 'hero' ? 'Hero content' : activeTab === 'about' ? 'About content' : activeTab === 'contact' ? 'Contact content' : 'Footer content'}
       settings={portfolio.settings}
       fields={fields}
       busy={busy}
@@ -241,6 +252,42 @@ export default function AdminPage() {
                 ))}
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader><CardTitle>Three-dot menu visibility</CardTitle></CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2">
+                {HEADER_MENU_ITEMS.map(([key, label]) => (
+                  <label key={key} className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <span className="text-sm font-medium">{label}</span>
+                    <input
+                      type="checkbox"
+                      checked={portfolio.sectionVisibility[key] !== false}
+                      disabled={busy}
+                      onChange={(event) => void changeSectionVisibility(key, event.target.checked)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                  </label>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      case 'header':
+        return (
+          <div className="space-y-6">
+            {renderSettings([
+              { name: 'firstName', label: 'Header logo first part' },
+              { name: 'lastName', label: 'Header logo second part' },
+              { name: 'overviewNavLabel', label: 'Overview navigation label' },
+              { name: 'expertiseNavLabel', label: 'Expertise navigation label' },
+              { name: 'workNavLabel', label: 'Work navigation label' },
+              { name: 'connectNavLabel', label: 'Connect navigation label' },
+              { name: 'moreSectionsTitle', label: 'Three-dot sections heading' },
+              { name: 'moreQuickActionsTitle', label: 'Quick actions heading' },
+              { name: 'resumeActionLabel', label: 'Resume action label' },
+              { name: 'pdfActionLabel', label: 'PDF action label' },
+              { name: 'adminActionLabel', label: 'Admin action label' },
+              { name: 'hireMeLabel', label: 'Hire me action label' },
+            ])}
           </div>
         );
       case 'hero':

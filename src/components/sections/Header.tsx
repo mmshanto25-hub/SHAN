@@ -35,18 +35,31 @@ export const Header: React.FC = () => {
   const visibleNavCategories = useMemo(() => NAV_CATEGORIES
     .map((category) => ({
       ...category,
+      label: ({
+        overview: data.settings.overviewNavLabel || 'Overview',
+        expertise: data.settings.expertiseNavLabel || 'Expertise',
+        work: data.settings.workNavLabel || 'Work',
+        connect: data.settings.connectNavLabel || 'Connect',
+      }[category.id] ?? category.label),
       subItems: category.subItems.filter((item) => {
         const section = item.href === '#home' ? 'hero' : item.href.slice(1);
         return data.sectionVisibility[section] !== false;
       }),
     }))
-    .filter((category) => category.subItems.length > 0), [data.sectionVisibility]);
+    .filter((category) => category.subItems.length > 0), [data.sectionVisibility, data.settings]);
   const visibleNavSections = useMemo(() => visibleNavCategories.flatMap((category) => category.subItems), [visibleNavCategories]);
 
   // Determine which top-level category is currently active based on section in view
   const activeCategoryId = visibleNavCategories.find(cat => 
     cat.subItems.some(sub => sub.href.substring(1) === activeSection)
   )?.id || 'overview';
+  const showQuickActions = data.sectionVisibility.headerHireAction !== false
+    || data.sectionVisibility.headerAdminAction !== false
+    || (data.sectionVisibility.resume !== false && (
+      data.sectionVisibility.headerResumeAction !== false
+      || data.sectionVisibility.headerPdfAction !== false
+    ));
+  const visibleSocialLinks = data.socialLinks.filter((link) => link.isVisible);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -310,7 +323,7 @@ export const Header: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-2 px-1">
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        All Navigation Sections
+                        {data.settings.moreSectionsTitle || 'All Navigation Sections'}
                       </span>
                       <span className="text-[10px] text-primary/80 font-mono">{visibleNavSections.length} sections</span>
                     </div>
@@ -343,52 +356,62 @@ export const Header: React.FC = () => {
                   </div>
 
                   {/* Quick Actions & Resume */}
+                  {showQuickActions && (
                   <div className="pt-2 border-t border-white/10 space-y-2">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block px-1">
-                      Quick Actions
+                      {data.settings.moreQuickActionsTitle || 'Quick Actions'}
                     </span>
                     <div className="grid grid-cols-4 gap-1.5">
-                      <a
-                        href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl bg-gradient-premium text-white text-xs font-semibold hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
-                      >
-                        <Send className="w-3.5 h-3.5" /> {data.settings.hireMeLabel}
-                      </a>
-                      {data.sectionVisibility.resume !== false && (
+                      {data.sectionVisibility.headerHireAction !== false && (
+                        <a
+                          href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl bg-gradient-premium text-white text-xs font-semibold hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
+                        >
+                          <Send className="w-3.5 h-3.5" /> {data.settings.hireMeLabel}
+                        </a>
+                      )}
+                      {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
+                        <a
+                          href="/resume"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> {data.settings.resumeActionLabel || 'Resume'}
+                        </a>
+                      )}
+                      {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
                         <>
-                          <a
-                            href="/resume"
-                            onClick={() => setMoreMenuOpen(false)}
-                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
-                          >
-                            <FileText className="w-3.5 h-3.5" /> Resume
-                          </a>
                           <a
                             href={data.settings.resumeFileUrl}
                             download={data.settings.resumeFileName}
                             className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/20 hover:border-primary/50 hover:bg-white/10 text-white text-xs font-semibold transition-all"
                           >
-                            <FileDown className="w-3.5 h-3.5" /> PDF
+                            <FileDown className="w-3.5 h-3.5" /> {data.settings.pdfActionLabel || 'PDF'}
                           </a>
                         </>
                       )}
-                      <a
-                        href="/admin"
-                        onClick={() => setMoreMenuOpen(false)}
-                        className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-semibold transition-all"
-                        title="Admin Panel"
-                      >
-                        <Shield className="w-3.5 h-3.5" /> Admin
-                      </a>
+                      {data.sectionVisibility.headerAdminAction !== false && (
+                        <a
+                          href="/admin"
+                          onClick={() => setMoreMenuOpen(false)}
+                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-semibold transition-all"
+                          title="Admin Panel"
+                        >
+                          <Shield className="w-3.5 h-3.5" /> {data.settings.adminActionLabel || 'Admin'}
+                        </a>
+                      )}
                     </div>
                   </div>
+                  )}
 
                   {/* Dynamic Social Channels & Back to Top */}
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
-                      {data.socialLinks.map((link) => (
+                  {(data.sectionVisibility.headerSocialLinks !== false || data.sectionVisibility.headerBackToTop !== false) && (
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    {data.sectionVisibility.headerSocialLinks !== false ? (
+                      <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
+                      {visibleSocialLinks.map((link) => (
                         <a
                           key={link.id}
                           href={link.url}
@@ -401,15 +424,19 @@ export const Header: React.FC = () => {
                           {renderDynamicIcon(link.icon, { className: 'w-3.5 h-3.5' })}
                         </a>
                       ))}
-                    </div>
+                      </div>
+                    ) : <span />}
 
-                    <button
-                      onClick={scrollToTop}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" /> Top
-                    </button>
-                  </div>
+                    {data.sectionVisibility.headerBackToTop !== false && (
+                      <button
+                        onClick={scrollToTop}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" /> Top
+                      </button>
+                    )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -484,44 +511,56 @@ export const Header: React.FC = () => {
 
             {/* Quick Actions & Socials for Mobile */}
             <div className="pt-4 border-t border-white/10 flex flex-col gap-4">
+              {showQuickActions && (
+                <>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {data.settings.moreQuickActionsTitle || 'Quick Actions'}
+              </span>
               <div className="grid grid-cols-4 gap-2">
-                <a
-                  href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-2.5 rounded-xl bg-gradient-premium text-white font-semibold text-center text-xs flex items-center justify-center"
-                >
-                  {data.settings.hireMeLabel}
-                </a>
-                {data.sectionVisibility.resume !== false && (
-                  <>
-                    <a
-                      href="/resume"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
-                    >
-                      Resume
-                    </a>
-                    <a
-                      href={data.settings.resumeFileUrl}
-                      download={data.settings.resumeFileName}
-                      className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
-                    >
-                      PDF CV
-                    </a>
-                  </>
+                {data.sectionVisibility.headerHireAction !== false && (
+                  <a
+                    href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-2.5 rounded-xl bg-gradient-premium text-white font-semibold text-center text-xs flex items-center justify-center"
+                  >
+                    {data.settings.hireMeLabel}
+                  </a>
                 )}
-                <a
-                  href="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white font-semibold text-center text-xs flex items-center justify-center"
-                >
-                  Admin
-                </a>
+                {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
+                  <a
+                    href="/resume"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
+                  >
+                    {data.settings.resumeActionLabel || 'Resume'}
+                  </a>
+                )}
+                {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
+                  <a
+                    href={data.settings.resumeFileUrl}
+                    download={data.settings.resumeFileName}
+                    className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
+                  >
+                    {data.settings.pdfActionLabel || 'PDF'} CV
+                  </a>
+                )}
+                {data.sectionVisibility.headerAdminAction !== false && (
+                  <a
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-2.5 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white font-semibold text-center text-xs flex items-center justify-center"
+                  >
+                    {data.settings.adminActionLabel || 'Admin'}
+                  </a>
+                )}
               </div>
+                </>
+              )}
 
-              <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
-                {data.socialLinks.map((link) => (
+              {data.sectionVisibility.headerSocialLinks !== false && (
+                <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
+                {visibleSocialLinks.map((link) => (
                   <a
                     key={link.id}
                     href={link.url}
@@ -534,7 +573,8 @@ export const Header: React.FC = () => {
                     {renderDynamicIcon(link.icon, { className: 'w-4 h-4' })}
                   </a>
                 ))}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

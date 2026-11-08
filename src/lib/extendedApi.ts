@@ -251,7 +251,33 @@ export const FALLBACK_PASSIONS: PassionItem[] = [
   },
 ];
 
-// Helper to notify changes across browser tabs or components
+// UUID validator to distinguish database rows from sample fallback items
+export function isUuid(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+// Track deleted fallback items locally so user deletions always succeed
+function getDeletedFallbackIds(key: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(`deleted_fallback_${key}`);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function markFallbackDeleted(key: string, id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedFallbackIds(key);
+    set.add(id);
+    localStorage.setItem(`deleted_fallback_${key}`, JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore
+  }
+}
+
 function notifyChange(eventKey: string) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(eventKey));
@@ -260,7 +286,10 @@ function notifyChange(eventKey: string) {
 
 // ----------------- VLOG API -----------------
 export async function fetchVlogPosts(includeUnpublished = false): Promise<VlogPost[]> {
-  if (!supabase) return FALLBACK_VLOGS;
+  const deletedSet = getDeletedFallbackIds('vlog');
+  const fallbackFiltered = FALLBACK_VLOGS.filter((p) => !deletedSet.has(p.id));
+
+  if (!supabase) return fallbackFiltered;
   try {
     let query = supabase.from('vlog_posts').select('*').order('created_at', { ascending: false });
     if (!includeUnpublished) {
@@ -268,7 +297,7 @@ export async function fetchVlogPosts(includeUnpublished = false): Promise<VlogPo
     }
     const { data, error } = await query;
     if (error || !data || data.length === 0) {
-      return FALLBACK_VLOGS;
+      return fallbackFiltered;
     }
     return data.map((row: any) => ({
       id: row.id,
@@ -284,7 +313,7 @@ export async function fetchVlogPosts(includeUnpublished = false): Promise<VlogPo
       createdAt: row.created_at,
     }));
   } catch {
-    return FALLBACK_VLOGS;
+    return fallbackFiltered;
   }
 }
 
@@ -301,11 +330,19 @@ export async function createVlogPost(item: Partial<VlogPost>): Promise<void> {
     tags: item.tags || [],
     is_published: item.isPublished !== false,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to create vlog post in Supabase');
   notifyChange('vlog-changed');
 }
 
 export async function updateVlogPost(id: string, item: Partial<VlogPost>): Promise<void> {
+  // If it's a fallback item, convert it to a real database entry
+  if (!isUuid(id)) {
+    await createVlogPost(item);
+    markFallbackDeleted('vlog', id);
+    notifyChange('vlog-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const payload: any = {};
   if (item.title !== undefined) payload.title = item.title;
@@ -320,20 +357,37 @@ export async function updateVlogPost(id: string, item: Partial<VlogPost>): Promi
   payload.updated_at = new Date().toISOString();
 
   const { error } = await supabase.from('vlog_posts').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to update vlog post');
   notifyChange('vlog-changed');
 }
 
 export async function deleteVlogPost(id: string): Promise<void> {
+  // If it's a fallback item, delete locally
+  if (!isUuid(id)) {
+    markFallbackDeleted('vlog', id);
+    notifyChange('vlog-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const { error } = await supabase.from('vlog_posts').delete().eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Database error while deleting vlog post');
   notifyChange('vlog-changed');
+}
+
+export async function seedVlogPosts(): Promise<void> {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  for (const post of FALLBACK_VLOGS) {
+    await createVlogPost(post);
+  }
 }
 
 // ----------------- WORK PROJECTS API -----------------
 export async function fetchWorkProjects(includeHidden = false): Promise<WorkProject[]> {
-  if (!supabase) return FALLBACK_WORK_PROJECTS;
+  const deletedSet = getDeletedFallbackIds('work');
+  const fallbackFiltered = FALLBACK_WORK_PROJECTS.filter((p) => !deletedSet.has(p.id));
+
+  if (!supabase) return fallbackFiltered;
   try {
     let query = supabase.from('work_projects').select('*').order('display_order', { ascending: true });
     if (!includeHidden) {
@@ -341,7 +395,7 @@ export async function fetchWorkProjects(includeHidden = false): Promise<WorkProj
     }
     const { data, error } = await query;
     if (error || !data || data.length === 0) {
-      return FALLBACK_WORK_PROJECTS;
+      return fallbackFiltered;
     }
     return data.map((row: any) => ({
       id: row.id,
@@ -357,7 +411,7 @@ export async function fetchWorkProjects(includeHidden = false): Promise<WorkProj
       createdAt: row.created_at,
     }));
   } catch {
-    return FALLBACK_WORK_PROJECTS;
+    return fallbackFiltered;
   }
 }
 
@@ -374,11 +428,18 @@ export async function createWorkProject(item: Partial<WorkProject>): Promise<voi
     display_order: item.displayOrder ?? 0,
     is_visible: item.isVisible !== false,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to create work project in Supabase');
   notifyChange('work-changed');
 }
 
 export async function updateWorkProject(id: string, item: Partial<WorkProject>): Promise<void> {
+  if (!isUuid(id)) {
+    await createWorkProject(item);
+    markFallbackDeleted('work', id);
+    notifyChange('work-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const payload: any = {};
   if (item.title !== undefined) payload.title = item.title;
@@ -393,20 +454,36 @@ export async function updateWorkProject(id: string, item: Partial<WorkProject>):
   payload.updated_at = new Date().toISOString();
 
   const { error } = await supabase.from('work_projects').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to update work project');
   notifyChange('work-changed');
 }
 
 export async function deleteWorkProject(id: string): Promise<void> {
+  if (!isUuid(id)) {
+    markFallbackDeleted('work', id);
+    notifyChange('work-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const { error } = await supabase.from('work_projects').delete().eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Database error while deleting work project');
   notifyChange('work-changed');
+}
+
+export async function seedWorkProjects(): Promise<void> {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  for (const proj of FALLBACK_WORK_PROJECTS) {
+    await createWorkProject(proj);
+  }
 }
 
 // ----------------- PASSION ITEMS API -----------------
 export async function fetchPassionItems(includeHidden = false): Promise<PassionItem[]> {
-  if (!supabase) return FALLBACK_PASSIONS;
+  const deletedSet = getDeletedFallbackIds('passions');
+  const fallbackFiltered = FALLBACK_PASSIONS.filter((p) => !deletedSet.has(p.id));
+
+  if (!supabase) return fallbackFiltered;
   try {
     let query = supabase.from('passion_items').select('*').order('display_order', { ascending: true });
     if (!includeHidden) {
@@ -414,7 +491,7 @@ export async function fetchPassionItems(includeHidden = false): Promise<PassionI
     }
     const { data, error } = await query;
     if (error || !data || data.length === 0) {
-      return FALLBACK_PASSIONS;
+      return fallbackFiltered;
     }
     return data.map((row: any) => ({
       id: row.id,
@@ -430,7 +507,7 @@ export async function fetchPassionItems(includeHidden = false): Promise<PassionI
       createdAt: row.created_at,
     }));
   } catch {
-    return FALLBACK_PASSIONS;
+    return fallbackFiltered;
   }
 }
 
@@ -447,11 +524,18 @@ export async function createPassionItem(item: Partial<PassionItem>): Promise<voi
     display_order: item.displayOrder ?? 0,
     is_visible: item.isVisible !== false,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to create creative passion item in Supabase');
   notifyChange('passion-changed');
 }
 
 export async function updatePassionItem(id: string, item: Partial<PassionItem>): Promise<void> {
+  if (!isUuid(id)) {
+    await createPassionItem(item);
+    markFallbackDeleted('passions', id);
+    notifyChange('passion-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const payload: any = {};
   if (item.title !== undefined) payload.title = item.title;
@@ -466,13 +550,26 @@ export async function updatePassionItem(id: string, item: Partial<PassionItem>):
   payload.updated_at = new Date().toISOString();
 
   const { error } = await supabase.from('passion_items').update(payload).eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Failed to update passion item');
   notifyChange('passion-changed');
 }
 
 export async function deletePassionItem(id: string): Promise<void> {
+  if (!isUuid(id)) {
+    markFallbackDeleted('passions', id);
+    notifyChange('passion-changed');
+    return;
+  }
+
   if (!supabase) throw new Error('Supabase client not initialized');
   const { error } = await supabase.from('passion_items').delete().eq('id', id);
-  if (error) throw error;
+  if (error) throw new Error(error.message || 'Database error while deleting passion item');
   notifyChange('passion-changed');
+}
+
+export async function seedPassionItems(): Promise<void> {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  for (const item of FALLBACK_PASSIONS) {
+    await createPassionItem(item);
+  }
 }

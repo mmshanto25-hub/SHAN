@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, Camera, Film, Palette, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Pencil, Camera, Film, Palette, EyeOff, Database } from 'lucide-react';
 import { 
   fetchPassionItems, 
   createPassionItem, 
   updatePassionItem, 
   deletePassionItem, 
+  seedPassionItems,
+  isUuid,
   type PassionItem 
 } from '@/lib/extendedApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +20,7 @@ export const AdminPassionEditor: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -35,8 +38,8 @@ export const AdminPassionEditor: React.FC = () => {
       const data = await fetchPassionItems(true);
       setItems(data);
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load passion items');
+    } catch (err: any) {
+      setError(err?.message || 'Could not load passion items');
     } finally {
       setLoading(false);
     }
@@ -45,6 +48,24 @@ export const AdminPassionEditor: React.FC = () => {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const hasFallbackItems = items.some((it) => !isUuid(it.id));
+
+  const handleSeed = async () => {
+    if (!window.confirm('Save all default sample items into your Supabase database?')) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await seedPassionItems();
+      await loadData();
+      setNotice('Default items successfully saved to Supabase!');
+      setTimeout(() => setNotice(null), 4000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to seed items to Supabase');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingItem(null);
@@ -58,6 +79,7 @@ export const AdminPassionEditor: React.FC = () => {
     setIsVisible(true);
     setIsCreating(true);
     setError(null);
+    setNotice(null);
   };
 
   const openEdit = (item: PassionItem) => {
@@ -72,6 +94,7 @@ export const AdminPassionEditor: React.FC = () => {
     setIsVisible(item.isVisible);
     setIsCreating(true);
     setError(null);
+    setNotice(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -104,21 +127,26 @@ export const AdminPassionEditor: React.FC = () => {
       setIsCreating(false);
       setEditingItem(null);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setNotice('Creative item saved successfully.');
+      setTimeout(() => setNotice(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Save failed');
     } finally {
       setBusy(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this creative work permanently?')) return;
+    if (!window.confirm('Delete this creative work?')) return;
     setBusy(true);
+    setError(null);
     try {
       await deletePassionItem(id);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      setNotice('Item removed successfully.');
+      setTimeout(() => setNotice(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Delete failed');
     } finally {
       setBusy(false);
     }
@@ -127,16 +155,23 @@ export const AdminPassionEditor: React.FC = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle>Creative Passions Manager</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Curate your photography captures, cinematography reels, and digital art pieces.
             </p>
           </div>
-          <Button onClick={openCreate} disabled={busy}>
-            <Plus className="w-4 h-4 mr-1.5" /> Add Creative Work
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasFallbackItems && (
+              <Button variant="outline" size="sm" onClick={handleSeed} disabled={busy}>
+                <Database className="w-3.5 h-3.5 mr-1 text-primary" /> Save Samples to DB
+              </Button>
+            )}
+            <Button onClick={openCreate} disabled={busy}>
+              <Plus className="w-4 h-4 mr-1.5" /> Add Creative Work
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -144,11 +179,21 @@ export const AdminPassionEditor: React.FC = () => {
               {error}
             </p>
           )}
+          {notice && (
+            <p className="mb-4 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-xs text-green-300">
+              {notice}
+            </p>
+          )}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading creative items…</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No creative works added yet.</p>
+            <div className="text-center py-8 text-muted-foreground space-y-3">
+              <p className="text-sm">No creative works added yet.</p>
+              <Button variant="outline" size="sm" onClick={openCreate}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add Your First Item
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
               {items.map((it) => (
@@ -174,6 +219,11 @@ export const AdminPassionEditor: React.FC = () => {
                         {!it.isVisible && (
                           <span className="text-xs text-yellow-400 flex items-center gap-1">
                             <EyeOff className="w-3 h-3" /> Hidden
+                          </span>
+                        )}
+                        {!isUuid(it.id) && (
+                          <span className="text-[10px] text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                            Sample
                           </span>
                         )}
                       </div>

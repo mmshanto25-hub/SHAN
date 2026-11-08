@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ExternalLink, Github, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Pencil, ExternalLink, Github, EyeOff, Database } from 'lucide-react';
 import { 
   fetchWorkProjects, 
   createWorkProject, 
   updateWorkProject, 
   deleteWorkProject, 
+  seedWorkProjects,
+  isUuid,
   type WorkProject 
 } from '@/lib/extendedApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +29,7 @@ export const AdminWorkEditor: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -45,8 +48,8 @@ export const AdminWorkEditor: React.FC = () => {
       const data = await fetchWorkProjects(true);
       setProjects(data);
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load work projects');
+    } catch (err: any) {
+      setError(err?.message || 'Could not load work projects');
     } finally {
       setLoading(false);
     }
@@ -55,6 +58,24 @@ export const AdminWorkEditor: React.FC = () => {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const hasFallbackItems = projects.some((p) => !isUuid(p.id));
+
+  const handleSeed = async () => {
+    if (!window.confirm('Save all default sample projects into your Supabase database?')) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await seedWorkProjects();
+      await loadData();
+      setNotice('Default projects successfully saved to Supabase!');
+      setTimeout(() => setNotice(null), 4000);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to seed projects to Supabase');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const openCreate = () => {
     setEditingProject(null);
@@ -69,6 +90,7 @@ export const AdminWorkEditor: React.FC = () => {
     setIsVisible(true);
     setIsCreating(true);
     setError(null);
+    setNotice(null);
   };
 
   const openEdit = (p: WorkProject) => {
@@ -89,6 +111,7 @@ export const AdminWorkEditor: React.FC = () => {
     setIsVisible(p.isVisible);
     setIsCreating(true);
     setError(null);
+    setNotice(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -123,8 +146,10 @@ export const AdminWorkEditor: React.FC = () => {
       setIsCreating(false);
       setEditingProject(null);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setNotice('Project saved successfully.');
+      setTimeout(() => setNotice(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Save failed');
     } finally {
       setBusy(false);
     }
@@ -133,11 +158,14 @@ export const AdminWorkEditor: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this project showcase entry?')) return;
     setBusy(true);
+    setError(null);
     try {
       await deleteWorkProject(id);
       await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      setNotice('Project removed successfully.');
+      setTimeout(() => setNotice(null), 3000);
+    } catch (err: any) {
+      setError(err?.message || 'Delete failed');
     } finally {
       setBusy(false);
     }
@@ -146,16 +174,23 @@ export const AdminWorkEditor: React.FC = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <CardTitle>Work Showcase Manager</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Manage App Development, Web Development, and AI Image Editing deliveries.
             </p>
           </div>
-          <Button onClick={openCreate} disabled={busy}>
-            <Plus className="w-4 h-4 mr-1.5" /> Add Project
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasFallbackItems && (
+              <Button variant="outline" size="sm" onClick={handleSeed} disabled={busy}>
+                <Database className="w-3.5 h-3.5 mr-1 text-primary" /> Save Samples to DB
+              </Button>
+            )}
+            <Button onClick={openCreate} disabled={busy}>
+              <Plus className="w-4 h-4 mr-1.5" /> Add Project
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
@@ -163,11 +198,21 @@ export const AdminWorkEditor: React.FC = () => {
               {error}
             </p>
           )}
+          {notice && (
+            <p className="mb-4 rounded-xl border border-green-500/30 bg-green-500/10 p-3 text-xs text-green-300">
+              {notice}
+            </p>
+          )}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading projects…</p>
           ) : projects.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No projects found.</p>
+            <div className="text-center py-8 text-muted-foreground space-y-3">
+              <p className="text-sm">No projects found.</p>
+              <Button variant="outline" size="sm" onClick={openCreate}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add Your First Project
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
               {projects.map((proj) => (
@@ -191,6 +236,11 @@ export const AdminWorkEditor: React.FC = () => {
                         {!proj.isVisible && (
                           <span className="text-xs text-yellow-400 flex items-center gap-1">
                             <EyeOff className="w-3 h-3" /> Hidden
+                          </span>
+                        )}
+                        {!isUuid(proj.id) && (
+                          <span className="text-[10px] text-muted-foreground bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                            Sample
                           </span>
                         )}
                       </div>

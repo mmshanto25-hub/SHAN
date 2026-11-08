@@ -221,13 +221,22 @@ export const PassionPage: React.FC = () => {
                 {/* Media Embed / Image */}
                 {selectedItem.category === 'cinematography' && selectedItem.mediaUrl ? (
                   <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-lg">
-                    <iframe
-                      src={getEmbedUrl(selectedItem.mediaUrl) || ''}
-                      title={selectedItem.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    {selectedItem.mediaUrl.includes('youtube.com') || selectedItem.mediaUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={getEmbedUrl(selectedItem.mediaUrl) || ''}
+                        title={selectedItem.title}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video
+                        src={selectedItem.mediaUrl}
+                        controls
+                        playsInline
+                        className="w-full h-full object-contain"
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="max-h-[60vh] w-full rounded-2xl overflow-hidden bg-black flex items-center justify-center">

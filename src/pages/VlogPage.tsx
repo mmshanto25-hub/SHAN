@@ -268,13 +268,22 @@ export const VlogPage: React.FC = () => {
                 {/* Media Section: Video embed or Hero Image */}
                 {selectedPost.postType === 'video' && selectedPost.mediaUrl ? (
                   <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-lg">
-                    <iframe
-                      src={getEmbedUrl(selectedPost.mediaUrl) || ''}
-                      title={selectedPost.title}
-                      className="w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    {selectedPost.mediaUrl.includes('youtube.com') || selectedPost.mediaUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={getEmbedUrl(selectedPost.mediaUrl) || ''}
+                        title={selectedPost.title}
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video
+                        src={selectedPost.mediaUrl}
+                        controls
+                        playsInline
+                        className="w-full h-full object-contain"
+                      />
+                    )}
                   </div>
                 ) : selectedPost.thumbnailUrl ? (
                   <div className="w-full h-64 rounded-2xl overflow-hidden bg-muted">

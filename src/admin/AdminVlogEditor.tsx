@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, Tv, BookOpen, EyeOff, Database } from 'lucide-react';
+import { Plus, Trash2, Pencil, Tv, BookOpen, EyeOff, Database, Video } from 'lucide-react';
 import { 
   fetchVlogPosts, 
   createVlogPost, 
@@ -11,7 +11,7 @@ import {
 } from '@/lib/extendedApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AssetUploadField } from '@/admin/AssetUploadField';
+import { CloudinaryVideoUploader } from '@/admin/CloudinaryVideoUploader';
 
 export const AdminVlogEditor: React.FC = () => {
   const [posts, setPosts] = useState<VlogPost[]>([]);
@@ -24,11 +24,13 @@ export const AdminVlogEditor: React.FC = () => {
 
   // Form State
   const [title, setTitle] = useState('');
-  const [postType, setPostType] = useState<'article' | 'video' | 'gallery'>('article');
+  const [postType, setPostType] = useState<'article' | 'video' | 'gallery'>('video');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaPublicId, setMediaPublicId] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailPublicId, setThumbnailPublicId] = useState('');
   const [tags, setTags] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
@@ -52,16 +54,16 @@ export const AdminVlogEditor: React.FC = () => {
   const hasFallbackItems = posts.some((p) => !isUuid(p.id));
 
   const handleSeed = async () => {
-    if (!window.confirm('Save all default sample vlog posts into your Supabase database?')) return;
+    if (!window.confirm('Save all default sample vlog posts into your database?')) return;
     setBusy(true);
     setError(null);
     try {
       await seedVlogPosts();
       await loadData();
-      setNotice('Default vlogs successfully saved to Supabase!');
+      setNotice('Default vlogs successfully saved to database!');
       setTimeout(() => setNotice(null), 4000);
     } catch (err: any) {
-      setError(err?.message || 'Failed to seed vlogs to Supabase');
+      setError(err?.message || 'Failed to seed vlogs to database');
     } finally {
       setBusy(false);
     }
@@ -70,11 +72,13 @@ export const AdminVlogEditor: React.FC = () => {
   const openCreate = () => {
     setEditingPost(null);
     setTitle('');
-    setPostType('article');
+    setPostType('video');
     setSummary('');
     setContent('');
     setMediaUrl('');
+    setMediaPublicId('');
     setThumbnailUrl('');
+    setThumbnailPublicId('');
     setTags('');
     setIsPublished(true);
     setIsCreating(true);
@@ -89,7 +93,9 @@ export const AdminVlogEditor: React.FC = () => {
     setSummary(p.summary);
     setContent(p.content);
     setMediaUrl(p.mediaUrl);
+    setMediaPublicId(p.mediaPublicId || '');
     setThumbnailUrl(p.thumbnailUrl);
+    setThumbnailPublicId(p.thumbnailPublicId || '');
     setTags(p.tags.join(', '));
     setIsPublished(p.isPublished);
     setIsCreating(true);
@@ -113,7 +119,9 @@ export const AdminVlogEditor: React.FC = () => {
       summary: summary.trim(),
       content: content.trim(),
       mediaUrl: mediaUrl.trim(),
+      mediaPublicId: mediaPublicId.trim(),
       thumbnailUrl: thumbnailUrl.trim(),
+      thumbnailPublicId: thumbnailPublicId.trim(),
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
       isPublished,
     };
@@ -127,7 +135,7 @@ export const AdminVlogEditor: React.FC = () => {
       setIsCreating(false);
       setEditingPost(null);
       await loadData();
-      setNotice('Post saved successfully.');
+      setNotice('Vlog entry saved successfully.');
       setTimeout(() => setNotice(null), 3000);
     } catch (err: any) {
       setError(err?.message || 'Save failed');
@@ -159,7 +167,7 @@ export const AdminVlogEditor: React.FC = () => {
           <div>
             <CardTitle>Vlog &amp; Articles Manager</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              Publish technical articles, video entries, and creative media logs.
+              Upload videos via Cloudinary Unsigned Upload (Preset: <code className="text-primary font-mono text-[11px]">portfolio_vlogs</code>) and manage articles.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -258,7 +266,7 @@ export const AdminVlogEditor: React.FC = () => {
             <CardTitle>{editingPost ? 'Edit Vlog Entry' : 'Create Vlog Entry'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Title */}
                 <div className="md:col-span-2">
@@ -270,7 +278,7 @@ export const AdminVlogEditor: React.FC = () => {
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Modern Architecture with Supabase & Vite"
+                    placeholder="e.g. Behind the Scenes Drone Shoot in the Northern Valleys"
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 </div>
@@ -285,8 +293,8 @@ export const AdminVlogEditor: React.FC = () => {
                     onChange={(e) => setPostType(e.target.value as any)}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   >
+                    <option value="video">Video (Cloudinary Upload / Embed)</option>
                     <option value="article">Article (Text &amp; Images)</option>
-                    <option value="video">Video (YouTube / Embedded)</option>
                     <option value="gallery">Gallery (Visual Album)</option>
                   </select>
                 </div>
@@ -305,27 +313,39 @@ export const AdminVlogEditor: React.FC = () => {
                   </label>
                 </div>
 
-                {/* Video / External Media URL */}
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Media URL (YouTube link for video, or album link)
-                  </label>
-                  <input
-                    type="url"
-                    value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                {/* Cloudinary Video Upload Section */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Video className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Vlog Video File (Cloudinary Unsigned Upload)
+                    </span>
+                  </div>
+                  <CloudinaryVideoUploader
+                    label="Select or Drag Video File (Unsigned Preset: portfolio_vlogs)"
+                    mediaUrl={mediaUrl}
+                    publicId={mediaPublicId}
+                    resourceType="video"
+                    onUploadComplete={(result) => {
+                      setMediaUrl(result.secure_url);
+                      setMediaPublicId(result.public_id);
+                    }}
+                    disabled={busy}
                   />
                 </div>
 
-                {/* Thumbnail */}
-                <div className="md:col-span-2">
-                  <AssetUploadField
-                    label="Cover Thumbnail Image"
-                    value={thumbnailUrl}
+                {/* Cloudinary Cover Thumbnail Upload Section */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border space-y-2">
+                  <CloudinaryVideoUploader
+                    label="Cover Thumbnail Image (Cloudinary Unsigned Upload)"
+                    mediaUrl={thumbnailUrl}
+                    publicId={thumbnailPublicId}
+                    resourceType="image"
+                    onUploadComplete={(result) => {
+                      setThumbnailUrl(result.secure_url);
+                      setThumbnailPublicId(result.public_id);
+                    }}
                     disabled={busy}
-                    onChange={(url) => setThumbnailUrl(url)}
                   />
                 </div>
 
@@ -338,7 +358,7 @@ export const AdminVlogEditor: React.FC = () => {
                     rows={2}
                     value={summary}
                     onChange={(e) => setSummary(e.target.value)}
-                    placeholder="A brief punchy overview for the card snippet…"
+                    placeholder="A brief punchy overview for the vlog snippet…"
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 </div>
@@ -346,10 +366,10 @@ export const AdminVlogEditor: React.FC = () => {
                 {/* Full Content */}
                 <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Article Full Content (Markdown / Text)
+                    Article Full Content / Story Notes
                   </label>
                   <textarea
-                    rows={6}
+                    rows={5}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                     placeholder="Write your article or notes here…"
@@ -366,7 +386,7 @@ export const AdminVlogEditor: React.FC = () => {
                     type="text"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    placeholder="Architecture, TypeScript, Cinematography, AI"
+                    placeholder="Cinematography, 4K, ColorGrading, BehindTheScenes"
                     className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                   />
                 </div>
@@ -377,7 +397,7 @@ export const AdminVlogEditor: React.FC = () => {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={busy}>
-                  {busy ? 'Saving…' : 'Save Entry'}
+                  {busy ? 'Saving…' : 'Save Vlog Entry'}
                 </Button>
               </div>
             </form>

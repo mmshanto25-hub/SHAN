@@ -8,7 +8,9 @@ export interface VlogPost {
   content: string;
   postType: 'article' | 'video' | 'gallery';
   mediaUrl: string;
+  mediaPublicId?: string;
   thumbnailUrl: string;
+  thumbnailPublicId?: string;
   tags: string[];
   isPublished: boolean;
   createdAt: string;
@@ -307,7 +309,9 @@ export async function fetchVlogPosts(includeUnpublished = false): Promise<VlogPo
       content: row.content || '',
       postType: row.post_type || 'article',
       mediaUrl: row.media_url || '',
+      mediaPublicId: row.media_public_id || '',
       thumbnailUrl: row.thumbnail_url || '',
+      thumbnailPublicId: row.thumbnail_public_id || '',
       tags: Array.isArray(row.tags) ? row.tags : [],
       isPublished: row.is_published,
       createdAt: row.created_at,
@@ -319,7 +323,7 @@ export async function fetchVlogPosts(includeUnpublished = false): Promise<VlogPo
 
 export async function createVlogPost(item: Partial<VlogPost>): Promise<void> {
   if (!supabase) throw new Error('Supabase client not initialized');
-  const { error } = await supabase.from('vlog_posts').insert({
+  const payload: any = {
     title: item.title,
     slug: item.slug || item.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     summary: item.summary || '',
@@ -329,7 +333,11 @@ export async function createVlogPost(item: Partial<VlogPost>): Promise<void> {
     thumbnail_url: item.thumbnailUrl || '',
     tags: item.tags || [],
     is_published: item.isPublished !== false,
-  });
+  };
+  if (item.mediaPublicId !== undefined) payload.media_public_id = item.mediaPublicId;
+  if (item.thumbnailPublicId !== undefined) payload.thumbnail_public_id = item.thumbnailPublicId;
+
+  const { error } = await supabase.from('vlog_posts').insert(payload);
   if (error) throw new Error(error.message || 'Failed to create vlog post in Supabase');
   notifyChange('vlog-changed');
 }
@@ -351,7 +359,9 @@ export async function updateVlogPost(id: string, item: Partial<VlogPost>): Promi
   if (item.content !== undefined) payload.content = item.content;
   if (item.postType !== undefined) payload.post_type = item.postType;
   if (item.mediaUrl !== undefined) payload.media_url = item.mediaUrl;
+  if (item.mediaPublicId !== undefined) payload.media_public_id = item.mediaPublicId;
   if (item.thumbnailUrl !== undefined) payload.thumbnail_url = item.thumbnailUrl;
+  if (item.thumbnailPublicId !== undefined) payload.thumbnail_public_id = item.thumbnailPublicId;
   if (item.tags !== undefined) payload.tags = item.tags;
   if (item.isPublished !== undefined) payload.is_published = item.isPublished;
   payload.updated_at = new Date().toISOString();

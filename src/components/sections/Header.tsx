@@ -1,45 +1,76 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'wouter';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
 import { 
   Menu, 
   X, 
-  ChevronDown, 
   MoreVertical, 
   FileDown, 
   FileText,
   Send, 
   ArrowUp,
-  Github,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Shield
+  Shield,
+  Home,
+  Tv,
+  Briefcase,
+  Camera,
+  Sparkles
 } from 'lucide-react';
-import { NAV_CATEGORIES, type NavCategory } from '@/categories/navigationData';
+import { NAV_CATEGORIES } from '@/categories/navigationData';
 import { usePortfolio } from '@/context/PortfolioContext';
 import { getWhatsAppUrl } from '@/lib/format';
 import { renderDynamicIcon } from '@/lib/icons';
 
 export const Header: React.FC = () => {
   const { data } = usePortfolio();
+  const [location, setLocation] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const desktopNavRef = useRef<HTMLElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const scrollProgress = useScrollProgress();
+
+  // 4 Massive Navigation Items
+  const primaryNavItems = useMemo(() => [
+    {
+      id: 'home',
+      label: (data.settings as any).homeNavLabel || 'Home',
+      path: '/',
+      icon: Home,
+    },
+    {
+      id: 'vlog',
+      label: (data.settings as any).vlogNavLabel || 'Vlog',
+      path: '/vlog',
+      icon: Tv,
+    },
+    {
+      id: 'work',
+      label: (data.settings as any).workNavLabel || 'Work',
+      path: '/work',
+      icon: Briefcase,
+    },
+    {
+      id: 'passion',
+      label: (data.settings as any).passionNavLabel || 'Passion',
+      path: '/passion',
+      icon: Camera,
+    },
+  ], [data.settings]);
+
+  // Existing sections for the 3-dot "More Menu" quick-jump
   const visibleNavCategories = useMemo(() => NAV_CATEGORIES
     .map((category) => ({
       ...category,
       label: ({
-        overview: data.settings.overviewNavLabel || 'Overview',
-        expertise: data.settings.expertiseNavLabel || 'Expertise',
-        work: data.settings.workNavLabel || 'Work',
-        connect: data.settings.connectNavLabel || 'Connect',
+        overview: (data.settings as any).overviewNavLabel || 'Overview',
+        expertise: (data.settings as any).expertiseNavLabel || 'Expertise',
+        work: (data.settings as any).workNavLabel || 'Work',
+        connect: (data.settings as any).connectNavLabel || 'Connect',
       }[category.id] ?? category.label),
       subItems: category.subItems.filter((item) => {
         const section = item.href === '#home' ? 'hero' : item.href.slice(1);
@@ -47,18 +78,16 @@ export const Header: React.FC = () => {
       }),
     }))
     .filter((category) => category.subItems.length > 0), [data.sectionVisibility, data.settings]);
+
   const visibleNavSections = useMemo(() => visibleNavCategories.flatMap((category) => category.subItems), [visibleNavCategories]);
 
-  // Determine which top-level category is currently active based on section in view
-  const activeCategoryId = visibleNavCategories.find(cat => 
-    cat.subItems.some(sub => sub.href.substring(1) === activeSection)
-  )?.id || 'overview';
   const showQuickActions = data.sectionVisibility.headerHireAction !== false
     || data.sectionVisibility.headerAdminAction !== false
     || (data.sectionVisibility.resume !== false && (
       data.sectionVisibility.headerResumeAction !== false
       || data.sectionVisibility.headerPdfAction !== false
     ));
+
   const visibleSocialLinks = data.sectionVisibility.socials !== false
     ? data.socialLinks.filter((link) => link.isVisible)
     : [];
@@ -67,26 +96,28 @@ export const Header: React.FC = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
 
-      // Scroll spy logic across all sections
-      const sections = visibleNavSections.map(item => document.getElementById(item.href.substring(1)));
-      let currentActive = 'home';
+      // Scroll spy logic across sections if on Home page
+      if (location === '/' || location === '') {
+        const sections = visibleNavSections.map(item => document.getElementById(item.href.substring(1)));
+        let currentActive = 'home';
 
-      sections.forEach(section => {
-        if (section) {
-          const rect = section.getBoundingClientRect();
-          if (rect.top <= 120 && rect.bottom >= 120) {
-            currentActive = section.id;
+        sections.forEach(section => {
+          if (section) {
+            const rect = section.getBoundingClientRect();
+            if (rect.top <= 120 && rect.bottom >= 120) {
+              currentActive = section.id;
+            }
           }
-        }
-      });
+        });
 
-      setActiveSection(currentActive);
+        setActiveSection(currentActive);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [visibleNavSections]);
+  }, [visibleNavSections, location]);
 
   // Close menus on outside click or escape key
   useEffect(() => {
@@ -97,17 +128,10 @@ export const Header: React.FC = () => {
       ) {
         setMoreMenuOpen(false);
       }
-      if (
-        desktopNavRef.current && 
-        !desktopNavRef.current.contains(event.target as Node)
-      ) {
-        setOpenDropdownId(null);
-      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpenDropdownId(null);
         setMoreMenuOpen(false);
         setMobileMenuOpen(false);
       }
@@ -124,7 +148,21 @@ export const Header: React.FC = () => {
   const scrollTo = (href: string) => {
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
-    setOpenDropdownId(null);
+
+    if (location !== '/' && location !== '') {
+      setLocation('/');
+      setTimeout(() => {
+        const element = document.querySelector(href);
+        if (element) {
+          window.scrollTo({
+            top: element.getBoundingClientRect().top + window.scrollY - 80,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+      return;
+    }
+
     const element = document.querySelector(href);
     if (element) {
       window.scrollTo({
@@ -137,14 +175,18 @@ export const Header: React.FC = () => {
   const scrollToTop = () => {
     setMobileMenuOpen(false);
     setMoreMenuOpen(false);
-    setOpenDropdownId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const isNavActive = (path: string) => {
+    if (path === '/') return location === '/' || location === '';
+    return location.startsWith(path);
   };
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'h-[80px] glassmorphism' : 'h-[100px] bg-transparent'
+        isScrolled ? 'h-[75px] glassmorphism' : 'h-[95px] bg-transparent'
       }`}
     >
       {/* Scroll Progress Bar */}
@@ -156,133 +198,62 @@ export const Header: React.FC = () => {
       <div className="container mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <a
-          href="#home"
+          href="/"
           onClick={(e) => {
             e.preventDefault();
-            scrollTo('#home');
+            if (location !== '/' && location !== '') {
+              setLocation('/');
+            } else {
+              scrollToTop();
+            }
           }}
-          className="text-2xl font-bold font-heading tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
-          aria-label="Meskatul Masabhi Shanto - Home"
+          className="text-2xl font-bold font-heading tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg flex items-center gap-2"
+          aria-label="Home"
         >
-          <span className="text-gradient">{data.settings.firstName} </span>{data.settings.lastName}
+          <span className="text-gradient">{data.settings.firstName} </span>
+          <span>{data.settings.lastName}</span>
         </a>
 
-        {/* Desktop 4-Item Navigation */}
+        {/* 4 Massive Desktop Navigation Tabs */}
         <nav 
           ref={desktopNavRef}
-          aria-label="Main Navigation"
-          className="hidden md:flex items-center gap-2"
+          aria-label="Primary Navigation"
+          className="hidden md:flex items-center gap-1.5 p-1.5 rounded-2xl glassmorphism bg-background/50 border border-white/10"
         >
-          {visibleNavCategories.map((category: NavCategory) => {
-            const isCategoryActive = activeCategoryId === category.id;
-            const isDropdownOpen = openDropdownId === category.id;
+          {primaryNavItems.map((item) => {
+            const active = isNavActive(item.path);
+            const Icon = item.icon;
 
             return (
-              <div 
-                key={category.id} 
-                className="relative"
-                onMouseEnter={() => setOpenDropdownId(category.id)}
-                onMouseLeave={() => setOpenDropdownId(null)}
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.path === '/' && (location === '/' || location === '')) {
+                    scrollToTop();
+                  } else {
+                    setLocation(item.path);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all focus:outline-none ${
+                  active
+                    ? 'text-white'
+                    : 'text-muted-foreground hover:text-white hover:bg-white/5'
+                }`}
+                aria-current={active ? 'page' : undefined}
               >
-                <button
-                  onClick={() => {
-                    if (openDropdownId === category.id) {
-                      setOpenDropdownId(null);
-                    } else {
-                      setOpenDropdownId(category.id);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setOpenDropdownId(isDropdownOpen ? null : category.id);
-                    }
-                  }}
-                  aria-expanded={isDropdownOpen}
-                  aria-haspopup="true"
-                  className={`group relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    isCategoryActive || isDropdownOpen
-                      ? 'text-white bg-white/10'
-                      : 'text-muted-foreground hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span>{category.label}</span>
-                  <ChevronDown
-                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      isDropdownOpen ? 'rotate-180 text-primary' : 'text-muted-foreground group-hover:text-white'
-                    }`}
+                {/* Active Neon Wave / Pill Animation */}
+                {active && (
+                  <motion.div
+                    layoutId="massiveNavIndicator"
+                    className="absolute inset-0 rounded-xl bg-gradient-premium shadow-[0_0_20px_rgba(59,130,246,0.4)]"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
-                  {isCategoryActive && (
-                    <motion.div
-                      layoutId="activeNavIndicator"
-                      className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-premium rounded-full"
-                      initial={false}
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </button>
+                )}
 
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
-                      className="absolute top-full left-0 mt-2 w-72 p-2 rounded-2xl glassmorphism bg-background/95 border border-white/15 shadow-2xl backdrop-blur-2xl z-50"
-                    >
-                      <div className="px-3 py-1.5 mb-1 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/80 border-b border-white/5">
-                        {category.label}
-                      </div>
-
-                      <div className="space-y-1">
-                        {category.subItems.map(subItem => {
-                          const isSubActive = activeSection === subItem.href.substring(1);
-                          const SubIcon = subItem.icon;
-
-                          return (
-                            <a
-                              key={subItem.label}
-                              href={subItem.href}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                scrollTo(subItem.href);
-                              }}
-                              className={`flex items-start gap-3 p-2.5 rounded-xl transition-all group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                                isSubActive
-                                  ? 'bg-primary/15 text-white border border-primary/30'
-                                  : 'hover:bg-white/10 text-muted-foreground hover:text-white border border-transparent'
-                              }`}
-                            >
-                              <div className={`p-2 rounded-lg shrink-0 transition-colors ${
-                                isSubActive ? 'bg-primary text-white' : 'bg-white/5 group-hover:bg-primary/20 text-primary group-hover:text-white'
-                              }`}>
-                                <SubIcon className="w-4 h-4" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-semibold text-white">
-                                    {subItem.label}
-                                  </span>
-                                  {isSubActive && (
-                                    <span className="text-[10px] uppercase font-bold text-primary px-1.5 py-0.5 rounded-full bg-primary/20">
-                                      Active
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground/90 mt-0.5 line-clamp-1">
-                                  {subItem.description}
-                                </p>
-                              </div>
-                            </a>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                <Icon className={`w-4 h-4 relative z-10 transition-colors ${active ? 'text-white' : 'text-primary'}`} />
+                <span className="relative z-10">{item.label}</span>
+              </button>
             );
           })}
         </nav>
@@ -321,18 +292,18 @@ export const Header: React.FC = () => {
                   transition={{ duration: 0.2, ease: 'easeOut' }}
                   className="absolute right-0 top-full mt-3 w-80 p-4 rounded-3xl glassmorphism bg-background/95 border border-white/15 shadow-2xl backdrop-blur-2xl z-50 space-y-4"
                 >
-                  {/* Quick Jump - All 8 Sections */}
+                  {/* Quick Jump - All Sections */}
                   <div>
                     <div className="flex items-center justify-between mb-2 px-1">
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {data.settings.moreSectionsTitle || 'All Navigation Sections'}
+                        {data.settings.moreSectionsTitle || 'Home Sections'}
                       </span>
                       <span className="text-[10px] text-primary/80 font-mono">{visibleNavSections.length} sections</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1.5">
                       {visibleNavSections.map((section) => {
-                        const isSectionActive = activeSection === section.href.substring(1);
+                        const isSectionActive = activeSection === section.href.substring(1) && (location === '/' || location === '');
                         const SectionIcon = section.icon;
 
                         return (
@@ -359,32 +330,31 @@ export const Header: React.FC = () => {
 
                   {/* Quick Actions & Resume */}
                   {showQuickActions && (
-                  <div className="pt-2 border-t border-white/10 space-y-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block px-1">
-                      {data.settings.moreQuickActionsTitle || 'Quick Actions'}
-                    </span>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {data.sectionVisibility.headerHireAction !== false && (
-                        <a
-                          href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl bg-gradient-premium text-white text-xs font-semibold hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
-                        >
-                          <Send className="w-3.5 h-3.5" /> {data.settings.hireMeLabel}
-                        </a>
-                      )}
-                      {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
-                        <a
-                          href="/resume"
-                          onClick={() => setMoreMenuOpen(false)}
-                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
-                        >
-                          <FileText className="w-3.5 h-3.5" /> {data.settings.resumeActionLabel || 'Resume'}
-                        </a>
-                      )}
-                      {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
-                        <>
+                    <div className="pt-2 border-t border-white/10 space-y-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block px-1">
+                        {data.settings.moreQuickActionsTitle || 'Quick Actions'}
+                      </span>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {data.sectionVisibility.headerHireAction !== false && (
+                          <a
+                            href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl bg-gradient-premium text-white text-xs font-semibold hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all"
+                          >
+                            <Send className="w-3.5 h-3.5" /> {data.settings.hireMeLabel}
+                          </a>
+                        )}
+                        {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
+                          <a
+                            href="/resume"
+                            onClick={() => setMoreMenuOpen(false)}
+                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-all"
+                          >
+                            <FileText className="w-3.5 h-3.5" /> {data.settings.resumeActionLabel || 'Resume'}
+                          </a>
+                        )}
+                        {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
                           <a
                             href={data.settings.resumeFileUrl}
                             download={data.settings.resumeFileName}
@@ -392,51 +362,50 @@ export const Header: React.FC = () => {
                           >
                             <FileDown className="w-3.5 h-3.5" /> {data.settings.pdfActionLabel || 'PDF'}
                           </a>
-                        </>
-                      )}
-                      {data.sectionVisibility.headerAdminAction !== false && (
-                        <a
-                          href="/admin"
-                          onClick={() => setMoreMenuOpen(false)}
-                          className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-semibold transition-all"
-                          title="Admin Panel"
-                        >
-                          <Shield className="w-3.5 h-3.5" /> {data.settings.adminActionLabel || 'Admin'}
-                        </a>
-                      )}
+                        )}
+                        {data.sectionVisibility.headerAdminAction !== false && (
+                          <a
+                            href="/admin"
+                            onClick={() => setMoreMenuOpen(false)}
+                            className="flex items-center justify-center gap-1 py-2 px-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white text-xs font-semibold transition-all"
+                            title="Admin Panel"
+                          >
+                            <Shield className="w-3.5 h-3.5" /> {data.settings.adminActionLabel || 'Admin'}
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </div>
                   )}
 
-                  {/* Dynamic Social Channels & Back to Top */}
+                  {/* Social Channels & Back to Top */}
                   {((data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false) || data.sectionVisibility.headerBackToTop !== false) && (
                     <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                    {data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false ? (
-                      <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
-                      {visibleSocialLinks.map((link) => (
-                        <a
-                          key={link.id}
-                          href={link.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={link.label}
-                          title={link.label}
-                          className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
-                        >
-                          {renderDynamicIcon(link.icon, { className: 'w-3.5 h-3.5' })}
-                        </a>
-                      ))}
-                      </div>
-                    ) : <span />}
+                      {data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false ? (
+                        <div className="flex items-center gap-1.5 flex-wrap max-w-[200px]">
+                          {visibleSocialLinks.map((link) => (
+                            <a
+                              key={link.id}
+                              href={link.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={link.label}
+                              title={link.label}
+                              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
+                            >
+                              {renderDynamicIcon(link.icon, { className: 'w-3.5 h-3.5' })}
+                            </a>
+                          ))}
+                        </div>
+                      ) : <span />}
 
-                    {data.sectionVisibility.headerBackToTop !== false && (
-                      <button
-                        onClick={scrollToTop}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" /> Top
-                      </button>
-                    )}
+                      {data.sectionVisibility.headerBackToTop !== false && (
+                        <button
+                          onClick={scrollToTop}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" /> Top
+                        </button>
+                      )}
                     </div>
                   )}
                 </motion.div>
@@ -444,7 +413,7 @@ export const Header: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* Mobile Toggle Button */}
+          {/* Mobile Top Menu Button */}
           <button
             className="md:hidden w-10 h-10 rounded-full glassmorphism flex items-center justify-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -455,7 +424,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Top Drawer (Quick Actions, Resume, Sections) */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -465,118 +434,103 @@ export const Header: React.FC = () => {
             transition={{ duration: 0.25 }}
             className="absolute top-full left-0 right-0 glassmorphism bg-background/95 border-t border-white/10 p-6 flex flex-col gap-6 md:hidden shadow-2xl backdrop-blur-2xl max-h-[85vh] overflow-y-auto"
           >
-            {/* Grouped 4 Categories with sublinks */}
-            <div className="space-y-4">
-              {visibleNavCategories.map((category) => {
-                const isCatActive = activeCategoryId === category.id;
+            {/* 4 Primary Nav Links for Mobile Menu */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Main Pages
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {primaryNavItems.map((item) => {
+                  const active = isNavActive(item.path);
+                  const Icon = item.icon;
 
-                return (
-                  <div key={category.id} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${
-                        isCatActive ? 'text-primary' : 'text-muted-foreground'
-                      }`}>
-                        {category.label}
-                      </span>
-                      <div className="h-[1px] flex-1 bg-white/10" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 pl-2">
-                      {category.subItems.map((subItem) => {
-                        const isSubActive = activeSection === subItem.href.substring(1);
-                        const SubIcon = subItem.icon;
-
-                        return (
-                          <a
-                            key={subItem.label}
-                            href={subItem.href}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              scrollTo(subItem.href);
-                            }}
-                            className={`flex items-center gap-2 p-2.5 rounded-xl text-sm font-medium transition-all ${
-                              isSubActive
-                                ? 'bg-primary/20 text-white border border-primary/40'
-                                : 'bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white'
-                            }`}
-                          >
-                            <SubIcon className="w-4 h-4 text-primary shrink-0" />
-                            <span className="truncate">{subItem.label}</span>
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setLocation(item.path);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`flex items-center gap-2.5 p-3 rounded-2xl text-xs font-bold transition-all text-left ${
+                        active
+                          ? 'bg-gradient-premium text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                          : 'bg-white/5 text-muted-foreground hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 text-white" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Quick Actions & Socials for Mobile */}
-            <div className="pt-4 border-t border-white/10 flex flex-col gap-4">
-              {showQuickActions && (
-                <>
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {data.settings.moreQuickActionsTitle || 'Quick Actions'}
-              </span>
-              <div className="grid grid-cols-4 gap-2">
-                {data.sectionVisibility.headerHireAction !== false && (
-                  <a
-                    href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="py-2.5 rounded-xl bg-gradient-premium text-white font-semibold text-center text-xs flex items-center justify-center"
-                  >
-                    {data.settings.hireMeLabel}
-                  </a>
-                )}
-                {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
-                  <a
-                    href="/resume"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
-                  >
-                    {data.settings.resumeActionLabel || 'Resume'}
-                  </a>
-                )}
-                {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
-                  <a
-                    href={data.settings.resumeFileUrl}
-                    download={data.settings.resumeFileName}
-                    className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
-                  >
-                    {data.settings.pdfActionLabel || 'PDF'} CV
-                  </a>
-                )}
-                {data.sectionVisibility.headerAdminAction !== false && (
-                  <a
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-2.5 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white font-semibold text-center text-xs flex items-center justify-center"
-                  >
-                    {data.settings.adminActionLabel || 'Admin'}
-                  </a>
-                )}
-              </div>
-                </>
-              )}
-
-              {data.sectionVisibility.socials !== false && data.sectionVisibility.headerSocialLinks !== false && (
-                <div className="flex justify-center items-center gap-4 pt-2 flex-wrap">
-                {visibleSocialLinks.map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-10 h-10 rounded-full glassmorphism flex items-center justify-center text-muted-foreground hover:text-white"
-                    aria-label={link.label}
-                    title={link.label}
-                  >
-                    {renderDynamicIcon(link.icon, { className: 'w-4 h-4' })}
-                  </a>
-                ))}
+            {/* Quick Actions */}
+            {showQuickActions && (
+              <div className="pt-2 border-t border-white/10 space-y-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Quick Actions
+                </span>
+                <div className="grid grid-cols-4 gap-2">
+                  {data.sectionVisibility.headerHireAction !== false && (
+                    <a
+                      href={getWhatsAppUrl(data.settings.hireMeWhatsappNumber)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="py-2.5 rounded-xl bg-gradient-premium text-white font-semibold text-center text-xs flex items-center justify-center"
+                    >
+                      {data.settings.hireMeLabel}
+                    </a>
+                  )}
+                  {data.sectionVisibility.resume !== false && data.sectionVisibility.headerResumeAction !== false && (
+                    <a
+                      href="/resume"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2.5 rounded-xl border border-primary/40 bg-primary/10 text-primary font-semibold text-center text-xs flex items-center justify-center"
+                    >
+                      {data.settings.resumeActionLabel || 'Resume'}
+                    </a>
+                  )}
+                  {data.sectionVisibility.resume !== false && data.sectionVisibility.headerPdfAction !== false && (
+                    <a
+                      href={data.settings.resumeFileUrl}
+                      download={data.settings.resumeFileName}
+                      className="py-2.5 rounded-xl border border-white/20 text-white font-semibold text-center text-xs hover:bg-white/5 flex items-center justify-center"
+                    >
+                      {data.settings.pdfActionLabel || 'PDF'}
+                    </a>
+                  )}
+                  {data.sectionVisibility.headerAdminAction !== false && (
+                    <a
+                      href="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2.5 rounded-xl border border-white/10 bg-white/5 text-muted-foreground hover:text-white font-semibold text-center text-xs flex items-center justify-center"
+                    >
+                      {data.settings.adminActionLabel || 'Admin'}
+                    </a>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
+
+            {/* Home Sections Jump */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Jump to Home Sections
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {visibleNavSections.map((sec) => (
+                  <button
+                    key={sec.label}
+                    onClick={() => scrollTo(sec.href)}
+                    className="flex items-center gap-2 p-2.5 rounded-xl text-xs font-medium bg-white/5 text-muted-foreground hover:text-white text-left"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="truncate">{sec.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}

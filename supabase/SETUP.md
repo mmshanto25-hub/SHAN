@@ -2,7 +2,7 @@
 
 ## 1. Apply the database migration
 
-In the Supabase dashboard, open **SQL Editor**, create a query, paste the contents of [`migrations/20261024000100_portfolio_cms.sql`](./migrations/20261024000100_portfolio_cms.sql), and run it. Then run the chat migration [`migrations/20261031000100_visitor_admin_chat.sql`](./migrations/20261031000100_visitor_admin_chat.sql) to create the private visitor/admin chat tables and RPCs. Apply both migrations in timestamp order.
+In the Supabase dashboard, open **SQL Editor**, create a query, paste the contents of [`migrations/20261024000100_portfolio_cms.sql`](./migrations/20261024000100_portfolio_cms.sql), and run it. Then run the chat migration [`migrations/20261031000100_visitor_admin_chat.sql`](./migrations/20261031000100_visitor_admin_chat.sql) to create the private visitor/admin chat tables and RPCs. Finally, run [`migrations/20261108000100_vlog_work_passion.sql`](./migrations/20261108000100_vlog_work_passion.sql) to create tables for Vlog entries, categorized Work projects, and Creative Passion showcases. Apply all migrations in timestamp order.
 
 The first migration creates the portfolio tables, row-level security policies, the public asset bucket, and an admin allowlist. The chat migration adds visitor conversations with token-protected access; only allowlisted admins can list conversations and reply. Public visitors can read only their own thread and submit contact messages.
 

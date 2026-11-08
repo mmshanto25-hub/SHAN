@@ -14,6 +14,9 @@ export type AdminTab =
   | 'resume'
   | 'inbox'
   | 'chat'
+  | 'vlog'
+  | 'workProjects'
+  | 'passion'
   | 'footer';
 
 export interface AdminUser {

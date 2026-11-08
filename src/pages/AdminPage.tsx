@@ -16,11 +16,16 @@ import {
   Sparkles,
   UserRound,
   Users,
+  Tv,
+  Camera,
   type LucideIcon,
 } from 'lucide-react';
 import { AdminAuth } from '@/admin/AdminAuth';
 import { AdminChatWidget } from '@/admin/AdminChatWidget';
 import { AdminChatInbox } from '@/admin/AdminChatInbox';
+import { AdminVlogEditor } from '@/admin/AdminVlogEditor';
+import { AdminWorkEditor } from '@/admin/AdminWorkEditor';
+import { AdminPassionEditor } from '@/admin/AdminPassionEditor';
 import { AdminResourceEditor } from '@/admin/AdminResourceEditor';
 import { AssetUploadField } from '@/admin/AssetUploadField';
 import type { AdminTab, AdminUser } from '@/admin/types';
@@ -56,6 +61,9 @@ const ADMIN_TABS: Array<{ key: AdminTab; label: string; icon: LucideIcon }> = [
   { key: 'socials', label: 'Socials', icon: Globe },
   { key: 'contact', label: 'Contact', icon: Contact },
   { key: 'resume', label: 'Resume', icon: FileText },
+  { key: 'vlog', label: 'Vlog & Articles', icon: Tv },
+  { key: 'workProjects', label: 'Work Showcase', icon: Briefcase },
+  { key: 'passion', label: 'Creative Passions', icon: Camera },
   { key: 'inbox', label: 'Inbox', icon: MessageSquare },
   { key: 'chat', label: 'Visitor chat', icon: MessageSquare },
   { key: 'footer', label: 'Footer', icon: ArrowRight },
@@ -403,6 +411,12 @@ export default function AdminPage() {
         );
       case 'chat':
         return <AdminChatInbox />;
+      case 'vlog':
+        return <AdminVlogEditor />;
+      case 'workProjects':
+        return <AdminWorkEditor />;
+      case 'passion':
+        return <AdminPassionEditor />;
       case 'footer':
         return renderSettings([
           { name: 'firstName', label: 'First name' },

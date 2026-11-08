@@ -4,13 +4,14 @@ import { Switch, Route } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { motion } from 'framer-motion';
-import { PortfolioProvider } from '@/context/PortfolioContext';
+import { PortfolioProvider, usePortfolio } from '@/context/PortfolioContext';
 
 // Global aesthetic components
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { CustomCursor } from '@/components/CustomCursor';
+import { BottomAppBar } from '@/components/BottomAppBar';
 
-// Category Section Components
+// Category Section Components for Home
 import { Header } from '@/components/sections/Header';
 import { Hero } from '@/categories/overview/Hero';
 import { About } from '@/categories/overview/About';
@@ -22,13 +23,16 @@ import { Testimonials } from '@/categories/connect/Testimonials';
 import { Contact } from '@/categories/connect/Contact';
 import { Footer } from '@/components/sections/Footer';
 import { VisitorChatWidget } from '@/components/VisitorChatWidget';
-import { usePortfolio } from '@/context/PortfolioContext';
 
 // Standalone Pages
 import { ResumePage } from '@/pages/ResumePage';
 import NotFound from '@/pages/not-found';
 
 const AdminPage = lazy(() => import('@/pages/AdminPage'));
+const VlogPage = lazy(() => import('@/pages/VlogPage'));
+const WorkPage = lazy(() => import('@/pages/WorkPage'));
+const PassionPage = lazy(() => import('@/pages/PassionPage'));
+
 const queryClient = new QueryClient();
 
 const LoadingScreen = () => {
@@ -46,6 +50,24 @@ const LoadingScreen = () => {
 const LazyAdminPage = () => (
   <Suspense fallback={<LoadingScreen />}>
     <AdminPage />
+  </Suspense>
+);
+
+const LazyVlogPage = () => (
+  <Suspense fallback={<LoadingScreen />}>
+    <VlogPage />
+  </Suspense>
+);
+
+const LazyWorkPage = () => (
+  <Suspense fallback={<LoadingScreen />}>
+    <WorkPage />
+  </Suspense>
+);
+
+const LazyPassionPage = () => (
+  <Suspense fallback={<LoadingScreen />}>
+    <PassionPage />
   </Suspense>
 );
 
@@ -69,7 +91,7 @@ const PortfolioHome = () => {
         {data.sectionVisibility.contact !== false && <Contact />}
       </main>
       {data.sectionVisibility.footer !== false && <Footer />}
-      {data.sectionVisibility.chat !== false && <VisitorChatWidget />}
+      <VisitorChatWidget />
     </>
   );
 };
@@ -105,10 +127,16 @@ function App() {
               >
                 <Switch>
                   <Route path="/" component={PortfolioHome} />
+                  <Route path="/vlog" component={LazyVlogPage} />
+                  <Route path="/work" component={LazyWorkPage} />
+                  <Route path="/passion" component={LazyPassionPage} />
                   <Route path="/resume" component={ResumePage} />
                   <Route path="/admin" component={LazyAdminPage} />
                   <Route component={NotFound} />
                 </Switch>
+
+                {/* Mobile Floating Neon Wave Bottom Bar */}
+                <BottomAppBar />
               </motion.div>
             )}
           </div>

@@ -24,7 +24,7 @@ export async function uploadToCloudinaryUnsigned(
   options: CloudinaryUploadOptions = {}
 ): Promise<CloudinaryUploadResult> {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = 'portfolio_vlogs';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'portfolio_vlogs';
 
   if (!cloudName) {
     throw new Error(

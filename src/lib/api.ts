@@ -338,7 +338,7 @@ function makeResourceApi(section: ItemSection) {
       const results = await Promise.all(orderedIds.map((id, display_order) =>
         client().from('portfolio_items').update({ display_order }).eq('id', id).eq('section', section),
       ));
-      const failed = results.find((result) => result.error);
+      const failed = results.find((result: { error?: unknown }) => result.error);
       if (failed?.error) throw failed.error;
       notifyPortfolioChange();
     },
@@ -460,7 +460,7 @@ export async function fetchInboxMessages(): Promise<InboxMessage[]> {
     .select('*').order('created_at', { ascending: false });
   if (error) throw error;
   notifyPortfolioChange();
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row: any) => ({
     id: row.id,
     senderName: row.sender_name,
     senderEmail: row.sender_email,

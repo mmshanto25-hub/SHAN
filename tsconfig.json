@@ -4,10 +4,12 @@
   "compilerOptions": {
     "noEmit": true,
     "skipLibCheck": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "lib": ["esnext", "dom", "dom.iterable"],
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "target": "ESNext",
+    "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["node", "vite/client"],
     "paths": {

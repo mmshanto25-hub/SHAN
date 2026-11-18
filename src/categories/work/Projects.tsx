@@ -70,7 +70,7 @@ const ProjectCard = ({ project, index }: { project: any; index: number }) => {
       onMouseLeave={handleMouseLeave}
       style={{
         transformStyle: "preserve-3d",
-      }}
+      } as React.CSSProperties}
       animate={{
         rotateX,
         rotateY

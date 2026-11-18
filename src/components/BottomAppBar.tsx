@@ -97,7 +97,7 @@ export const BottomAppBar: React.FC = () => {
                     className="absolute inset-x-1 inset-y-0 rounded-2xl bg-white/10 border border-white/20"
                     style={{
                       boxShadow: `0 0 20px ${item.glowColor}, inset 0 0 12px ${item.glowColor}`,
-                    }}
+                    } as React.CSSProperties}
                     transition={{
                       type: 'spring',
                       stiffness: 400,

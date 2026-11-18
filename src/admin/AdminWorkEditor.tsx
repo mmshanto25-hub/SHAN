@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ExternalLink, Github, EyeOff, Database } from 'lucide-react';
+import { Plus, Trash2, Pencil, ExternalLink, Github, EyeOff, Database, Image as ImageIcon } from 'lucide-react';
 import { 
   fetchWorkProjects, 
   createWorkProject, 
@@ -11,7 +11,7 @@ import {
 } from '@/lib/extendedApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AssetUploadField } from '@/admin/AssetUploadField';
+import { CloudinaryVideoUploader } from '@/admin/CloudinaryVideoUploader';
 
 const STANDARD_CATEGORIES = [
   'Web Development',
@@ -320,13 +320,21 @@ export const AdminWorkEditor: React.FC = () => {
                   )}
                 </div>
 
-                {/* Image Upload */}
-                <div className="md:col-span-2">
-                  <AssetUploadField
-                    label="Project Cover / Screenshot"
-                    value={imageUrl}
+                {/* Project Thumbnail / Cover Upload Section */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-primary" /> Project Thumbnail / Cover Image (Cloudinary Direct Upload)
+                    </span>
+                  </div>
+                  <CloudinaryVideoUploader
+                    label="Select or Drag Project Screenshot / Thumbnail"
+                    mediaUrl={imageUrl}
+                    resourceType="image"
+                    onUploadComplete={(result) => {
+                      setImageUrl(result.secure_url);
+                    }}
                     disabled={busy}
-                    onChange={(url) => setImageUrl(url)}
                   />
                 </div>
 

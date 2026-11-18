@@ -133,8 +133,19 @@ export const CloudinaryVideoUploader: React.FC<CloudinaryVideoUploaderProps> = (
         ) : mediaUrl ? (
           <div className="w-full flex items-center justify-between gap-3 text-left">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0">
-                {isVideoFile ? <Video className="w-5 h-5" /> : <ImageIcon className="w-5 h-5" />}
+              <div className="w-14 h-14 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0 overflow-hidden">
+                {isVideoFile ? (
+                  <Video className="w-6 h-6" />
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt="Thumbnail Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white truncate max-w-[280px] sm:max-w-md">
@@ -164,10 +175,13 @@ export const CloudinaryVideoUploader: React.FC<CloudinaryVideoUploaderProps> = (
             </div>
             <div>
               <p className="text-xs font-semibold text-white">
-                Click to browse or drop your {resourceType === 'video' ? 'video' : 'file'} here
+                Click to browse or drop your {resourceType === 'video' ? 'video' : resourceType === 'image' ? 'image / thumbnail' : 'file'} here
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                MP4, WebM, MOV · Unsigned direct upload via preset <code className="text-primary font-mono text-[10px]">portfolio_vlogs</code>
+                {resourceType === 'video'
+                  ? 'MP4, WebM, MOV'
+                  : 'PNG, JPG, JPEG, WebP, GIF'}{' '}
+                · Unsigned direct upload via preset <code className="text-primary font-mono text-[10px]">portfolio_vlogs</code>
               </p>
             </div>
           </>

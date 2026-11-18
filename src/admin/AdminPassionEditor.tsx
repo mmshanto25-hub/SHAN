@@ -11,7 +11,7 @@ import {
 } from '@/lib/extendedApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AssetUploadField } from '@/admin/AssetUploadField';
+import { CloudinaryVideoUploader } from '@/admin/CloudinaryVideoUploader';
 
 export const AdminPassionEditor: React.FC = () => {
   const [items, setItems] = useState<PassionItem[]>([]);
@@ -292,13 +292,17 @@ export const AdminPassionEditor: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Image / Video Media URL */}
-                <div className="md:col-span-2">
-                  <AssetUploadField
-                    label="Media File / Photo"
-                    value={mediaUrl}
+                {/* Media Upload (Cloudinary) */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-muted/20 border border-border space-y-2">
+                  <CloudinaryVideoUploader
+                    label="Upload Photo or Media File (Cloudinary Direct Upload)"
+                    mediaUrl={mediaUrl}
+                    resourceType={category === 'cinematography' ? 'video' : 'image'}
+                    onUploadComplete={(result) => {
+                      setMediaUrl(result.secure_url);
+                      setThumbnailUrl(result.secure_url);
+                    }}
                     disabled={busy}
-                    onChange={(url) => setMediaUrl(url)}
                   />
                 </div>
 

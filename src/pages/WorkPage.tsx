@@ -20,6 +20,33 @@ import { Header } from '@/components/sections/Header';
 import { Footer } from '@/components/sections/Footer';
 import { VisitorChatWidget } from '@/components/VisitorChatWidget';
 
+const ProjectCardImage: React.FC<{
+  imageUrl?: string;
+  title: string;
+  CategoryIcon: React.ComponentType<{ className?: string }>;
+}> = ({ imageUrl, title, CategoryIcon }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!imageUrl || hasError) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/15 via-background to-emerald-950/20 text-muted-foreground p-4 text-center">
+        <CategoryIcon className="w-10 h-10 text-emerald-400 opacity-60 mb-1" />
+        <span className="text-[11px] font-medium opacity-50">No preview image</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={title}
+      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+      loading="lazy"
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
 export const WorkPage: React.FC = () => {
   const [, setLocation] = useLocation();
   const [projects, setProjects] = useState<WorkProject[]>([]);
@@ -169,18 +196,11 @@ export const WorkPage: React.FC = () => {
                 >
                   {/* Image Header */}
                   <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                    {project.imageUrl ? (
-                      <img
-                        src={project.imageUrl}
-                        alt={project.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-emerald-900/30 text-emerald-400">
-                        <Briefcase className="w-10 h-10 opacity-40" />
-                      </div>
-                    )}
+                    <ProjectCardImage
+                      imageUrl={project.imageUrl}
+                      title={project.title}
+                      CategoryIcon={CategoryIcon}
+                    />
 
                     {/* Category Floating Badge */}
                     <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/80 backdrop-blur-md border border-white/15 text-[10px] font-bold uppercase tracking-wider text-white">
@@ -304,6 +324,9 @@ export const WorkPage: React.FC = () => {
                       src={selectedProject.imageUrl}
                       alt={selectedProject.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
                     />
                   </div>
                 )}
